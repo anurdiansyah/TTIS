@@ -1,0 +1,141 @@
+﻿@using Microsoft.Extensions.Options;
+@using TTIS.WebUi.Configuration;
+@inject IOptions<TtsiApi> ttsiApi
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<section class="content">
+    <div class="col-md-12">
+        <div style="height:895px!important; width:100%!important" id="map"></div>
+    </div>
+</section>
+
+
+@section AdditionalFooterScript
+{
+    <script>
+        var map;
+        var bounds;
+        var markers = {};
+        var locations = [];
+        var firstRequest = true;
+
+        window.onload = initMap;
+
+        $(document).ready(function () {
+            getLocationData();
+
+            setInterval(function()
+            {
+                getLocationData();
+            }, 5000);
+        })
+
+        function getLocationData()
+        {
+            try {
+                $.ajax({
+                    url: '@Url.Action("GetPositionsAsync", "Dashboard")',
+                    type: "POST",
+                    success: function (data) {
+                        $.each(data, function (key, value) {
+                            var pos = new google.maps.LatLng(value.latitude, value.longitude);
+
+                            if (value.tagNumber in markers) {
+                                var marker = markers[value.tagNumber];
+                                marker.setPosition(pos);
+                            } else {
+                                var icon = {
+                                    url: "@Url.Content("~/Assets/dist/img/default/marker_driver.png")",
+                                    size: new google.maps.Size(32, 32)
+                                };
+
+                                var marker = new google.maps.Marker({
+                                    position: pos,
+                                    icon:icon,
+                                    map: map
+                                });
+                                
+                                var content = "<div id=\"content\">" +
+                                    "<div>" +
+                                    "    <table>" +
+                                    "        <tr>" +
+                                    "           <td style=\"width:30%; text-align:center; vertical-align:top\">" +
+                                    "               <div id=\"bodyContent\">" +
+                                    "                   <img src='@ttsiApi.Value.ApiUrl/images/employee?id=" + value.pasPhoto + "' class=\"img-circle\" style=\"width: 100px; padding: 2px;\" alt=" + value.photoId + ">" +
+                                    "               </div>" +
+                                    "           </td>" +
+                                    "            <td style=\"text-align:left; vertical-align:top; margin:2px!important;\">" +
+                                    "               <div style=\"margin:10px!important\">" +
+                                    "                   <h4 id=\"firstHeading\" class=\"firstHeading\"><b>" + value.nickName + " (" + value.tagNumber + ")</b></h3>" +
+                                    "                   <div id=\"bodyContent\">" +
+                                    "                       <p>" + value.nickName + "</p>" +
+                                    "                   </div>" +
+                                    "               </div>" +
+                                    "            </td>" +
+                                    "        </tr>" +
+                                    "    </table>" +
+                                    "</div>" +
+                                    "</div>";
+                                
+                                var infowindow = new google.maps.InfoWindow();
+                                google.maps.event.addListener(marker, 'click', function () {
+                                    infowindow.setContent(content);
+                                    infowindow.open(map, marker);
+                                    setTimeout(function () {
+                                        infowindow.close();
+                                    }, "5000");
+                                });
+
+                                markers[value.tagNumber] = marker;
+                            }
+                            bounds.extend(pos);
+                        });
+                        
+                        if (firstRequest) {
+                            map.fitBounds(bounds);
+                            firstRequest = false;
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        swal({
+                            title: window.location.href,
+                            text: "( Error " + xhr.status + " ) - " + error,
+                            type: 'warning'
+                        }).then(function () {
+                            CloseModalInput('tblCrewsList');
+                        })
+                    }
+                });
+            }
+            catch (err) {
+                swal({
+                    title: 'From Catch',
+                    text: err.message,
+                    type: 'warning'
+                }).then(function () {
+                    CloseModalInput('tblCrewsList');
+                })
+            }
+        }
+
+        function initMap() {
+            bounds = new google.maps.LatLngBounds();
+            var mapOptions = {
+                maxZoom: 18,
+                minZoom: 10,
+                mapTypeId: 'roadmap',
+                disableDefaultUI: true
+            };
+            map = new google.maps.Map(document.getElementById('map'), mapOptions);
+            map.initialZoom = true;
+            map.fitBounds(bounds);
+            var zoom = map.getZoom();
+            map.setZoom(zoom > 6 ? 6 : zoom);
+        }
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBhHBG6N7_rl4j8ad456kF3QYlEM78l768&libraries=places" async defer></script>
+}

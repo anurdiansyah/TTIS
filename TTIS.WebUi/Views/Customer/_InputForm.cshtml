@@ -1,0 +1,294 @@
+﻿@using Nancy.Json
+@using Microsoft.Extensions.Options;
+@using TTIS.WebUi.Configuration;
+@using TTIS.WebUi.Common
+@using TTIS.WebUi.Services
+
+@inject IOptions<TtsiApi> ttsiApi
+@inject ISecurity Security
+
+
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@model MasCustomer
+
+@{
+    ViewBag.Title = "Customer";
+}
+<style type="text/css">
+    .image-preview-input {
+        position: relative;
+        overflow: hidden;
+        margin: 0px;
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+    }
+
+        .image-preview-input input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+
+    .image-preview-input-title {
+        margin-left: 2px;
+    }
+</style>
+
+@using (Html.BeginForm("PostAsync", "Customer", FormMethod.Post, new { id = "frmInput", enctype = "multipart/form-data", autocomplete = "off" }))
+{
+    <div class="modal-header">
+        <h3>
+            <i class="fa fa-user"></i>&nbsp;&nbsp;<span id="spnActionName"></span> @ViewBag.Title
+        </h3>
+    </div>
+
+    <div class="modal-body" style="max-height: calc(100vh - 240px) !important; overflow-y: auto !important;">
+        @Html.HiddenFor(model => model.CustomerId)
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group col-md-12">
+                    <label>Code <span style="color:red!important">&nbsp; * Auto Generated</span></label>
+                    @Html.TextBoxFor(model => model.Code, new { @placeholder = "Auto Generated", @class = "form-control", @readonly = true })
+                </div>
+                <div class="form-group col-md-12">
+                    <label>Name <span>&nbsp; * Please insert only Company Name (eg. <span style="color:green!important">Danone &#10004; </span> - <span style="color:red!important">PT. Danone &#10006; </span> )</span></label>
+                    @Html.TextBoxFor(model => model.Name, new { @placeholder = "Name", @class = "form-control", @required = true })
+                </div>
+                <div class="form-group col-md-12">
+                    <label>Address</label>
+                    @Html.TextAreaFor(model => model.Address, new { @placeholder = "Address", @class = "form-control", @required = true })
+                </div>
+                <div class="form-group col-md-6">
+                    <label>Phone Number</label>
+                    @Html.TextBoxFor(model => model.PhoneNumber, new { @placeholder = "Phone Number", @class = "form-control", @required = true })
+                </div>
+                <div class="form-group col-md-6">
+                    <label>E-mail</label>
+                    @Html.TextBoxFor(model => model.Email, new { @placeholder = "Email", @class = "form-control", @required = true, @type = "email" })
+                </div>
+            </div>
+            <div class="col-md-8">
+                <label style="width:100%;">&nbsp;</label>
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h4 class="pull-left"><b>Customer Contact List</b></h4>
+                        <div class="col-md-2 pull-right">
+                            <label style="width:100%;">&nbsp;</label>
+                            @if (Security.IsHaveAccessRight((int)SecurityEnumeration.ModuleObjectMember.CUST_PRCPL_CTCT_ADD))
+                            {
+                                <button type="button" id="btnAddContact" class="btn btn-success btn-flat" onclick="fOpenContact()">
+                                    <i class="fa fa-plus"></i> &nbsp; Add Contact
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <table id="tblCustomerContactList"
+                                       style="width:100%"
+                                       class="table table-bordered table-striped dataTable no-footer"
+                                       role="grid"></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal-footer">
+        <div class="form-group col-md-6 pull-right no-padding">
+            <div class="form-group col-md-6">
+                <button id="btnSubmit" type="submit" name="Save" class="form-control btn btn-success btn-flat">
+                    <i class="fa fa-save"></i> &nbsp; Simpan
+                </button>
+            </div>
+            <div class="form-group col-md-6">
+                <button type="button" class="form-control btn btn-default btn-flat" onclick="fClose()">
+                    <i class="fa fa-close"></i> &nbsp; Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+}
+
+<div id="dvSubModal">
+    @using (Html.BeginForm("AddCustomerContact", "Customer", FormMethod.Post, new { id = "frmAddCustomerContact", enctype = "multipart/form-data", autocomplete = "off" }))
+    {
+        <div class="modal modal-default fade" id="subMdl" data-backdrop="static" data-keyboard="false">
+            <div id="subMdlInput" class="modal-dialog modal-lg">
+                <div class="modal-content" style="padding:20px!important; margin:20px!important">
+                    <div class="modal-header">
+                        <div class="box-body">
+                            <h3>
+                                <i class="fa fa-phone"></i>&nbsp;&nbsp; Customer Contact
+                            </h3>
+                        </div>
+                    </div>
+
+                    <div class="modal-body" style="max-height: calc(100vh - 240px) !important; overflow-y: auto !important;">
+                        <div class="row">
+                            <div class="form-group col-md-12">
+                                <label>Name</label>
+                                @Html.TextBox("ContactName", string.Empty, new { @placeholder = "Contact Name", @class = "form-control" })
+                            </div>
+                            <div class="form-group col-md-12">
+                                <label>Address</label>
+                                @Html.TextArea("ContactAddress", string.Empty, new { @placeholder = "Contact Address", @class = "form-control" })
+                            </div>
+                            <div class="form-group col-md-12">
+                                <label>Phone Number</label>
+                                @Html.TextBox("ContactNumber", string.Empty, new { @placeholder = "Phone Number", @class = "form-control" })
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group col-md-6 pull-right no-padding">
+                            <div class="form-group col-md-6">
+                                <button id="btnSubmit" type="submit" name="Save" class="form-control btn btn-success btn-flat">
+                                    <i class="fa fa-save"></i> &nbsp; Simpan
+                                </button>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <button type="button" class="form-control btn btn-default btn-flat" onclick="fClose()">
+                                    <i class="fa fa-close"></i> &nbsp; Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+
+    $('#mdlInput').on('shown.bs.modal', function () {
+        try {
+            $('#JoinDate').datepicker({autoclose: true,format: 'dd MM yyyy'});
+            $('#DateOfBirth').datepicker({autoclose: true,format: 'dd MM yyyy'});
+
+            $('#EmployeDocumentId').val('-99')
+            $('#DocumentExpiryDate').datepicker({
+                autoclose: true,
+                format: 'dd MM yyyy'
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                fClose();
+            })
+        }
+    });
+
+    $('#frmInput').submit(function (e) {
+        e.preventDefault();
+
+        var form = $(this)[0];
+        var data = new FormData(form);
+
+        $.ajax({
+        url: '@Url.Action("PostAsync", "Customer")',
+        data: data,
+        type: "POST",
+        enctype: 'multipart/form-data',
+        processData: false,
+        contentType: false,
+        cache: false,
+        timeout: 600000,
+            success: function (data) {
+                if (data["isSuccess"]) {
+                    swal({
+                        title: "Success...",
+                        text: data["message"],
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblCustomerList');
+                    })
+                } else {
+                    swal({
+                        title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                        text: "Please safe the Reference Number and call your System Administrator.",
+                        type: 'warning'
+                    })
+                }
+            },
+            error: function (xhr, status, error) {
+                swal({
+                    title: window.location.href,
+                    text: "( Error " + xhr.status + " ) - " + error,
+                    type: 'warning'
+                }).then(function () {
+                    CloseModalInput('tblCustomerList');
+                })
+            }
+        });
+        return false;
+    });
+
+    $('#frmAddCustomerContact').submit(function (e) {
+        e.preventDefault();
+
+        var form = $(this)[0];
+        var data = new FormData(form);
+
+        $.ajax({
+        url: '@Url.Action("SaveContact", "Customer")',
+        data: data,
+        type: "POST",
+        enctype: 'multipart/form-data',
+        processData: false,
+        contentType: false,
+        cache: false,
+        timeout: 600000,
+            success: function (data) {
+                if (data["isSuccess"]) {
+                    swal({
+                        title: "Success...",
+                        text: data["message"],
+                        type: 'success'
+                    }).then(function () {
+                        fCancelAddContact();
+                    })
+                } else {
+                    swal({
+                        title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                        text: "Please safe the Reference Number and call your System Administrator.",
+                        type: 'warning'
+                    })
+                }
+            },
+            error: function (xhr, status, error) {
+                swal({
+                    title: window.location.href,
+                    text: "( Error " + xhr.status + " ) - " + error,
+                    type: 'warning'
+                }).then(function () {
+                    fCancelAddContact();
+                })
+            }
+        });
+        return false;
+    });
+
+</script>
+

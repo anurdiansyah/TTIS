@@ -1,0 +1,237 @@
+﻿@using Nancy.Json
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@model SysApprovalDetail
+
+@{
+}
+<style type="text/css">
+    .image-preview-input {
+        position: relative;
+        overflow: hidden;
+        margin: 0px;
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+    }
+
+        .image-preview-input input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+
+    .image-preview-input-title {
+        margin-left: 2px;
+    }
+</style>
+
+@using (Html.BeginForm("PostAsync", "SysApproval", FormMethod.Post, new { id = "frmInput", enctype = "multipart/form-data", autocomplete = "off" }))
+{
+    <div class="modal-header">
+        <h3>
+            <i class="fa fa-user"></i>&nbsp;&nbsp;<span id="spnActionName"></span> @ViewBag.Title
+        </h3>
+    </div>
+
+    <div class="modal-body" style="max-height: calc(100vh - 240px) !important; overflow-y: auto !important;">
+        @Html.HiddenFor(model => model.ApprovalId)
+        @Html.HiddenFor(model => model.Detail)
+        @Html.HiddenFor(model => model.PreviousDetail)
+        @Html.HiddenFor(model => model.ModuleObjectId)
+        @Html.HiddenFor(model => model.ModuleObjectMemberId)
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h5><b>Approval</b></h5>
+                    </div>
+                    <div class="box-body">
+                        <div class="col-md-6">
+                            <table style="width:100%"
+                                   class="table table-bordered table-striped dataTable no-footer"
+                                   role="grid">
+                                <tr>
+                                    <td style="width:30%!important">Module Object</td>
+                                    <td>:</td>
+                                    <td style="width:70%!important"><b>@Html.TextBoxFor(model => model.ReffObj, new { @class = "col-md-12", @style = "border: none!important; background: none!important;" })</b></td>
+                                </tr>
+                                <tr>
+                                    <td style="width:30%!important">Action</td>
+                                    <td>:</td>
+                                    <td style="width:70%!important"><b>@Html.TextBoxFor(model => model.ActionName, "{0:dddd, dd MMM yyyy}", new { @class = "col-md-12", @style = "border: none!important; background: none!important;" })</b></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table style="width:100%"
+                                   class="table table-bordered table-striped dataTable no-footer"
+                                   role="grid">
+                                <tr>
+                                    <td style="width:30%!important">Request By</td>
+                                    <td>:</td>
+                                    <td style="width:70%!important"><b>@Html.TextBoxFor(model => model.RequestedBy, new { @class = "col-md-12", @style = "border: none!important; background: none!important;" })</b></td>
+                                </tr>
+                                <tr>
+                                    <td style="width:30%!important">Request Date</td>
+                                    <td>:</td>
+                                    <td style="width:70%!important"><b>@Html.TextBoxFor(model => model.CreateDate, "{0:dddd, dd MMM yyyy}", new { @class = "col-md-12", @style = "border: none!important; background: none!important;" })</b></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="form-group col-md-12">
+                            <label>Remark</label>
+                            @Html.TextAreaFor(model => model.Remark, new { @placeholder = "Remark", @class = "form-control" })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="box box-success">
+                    <div class="box-header">
+                        <h5><b>Before Change</b></h5>
+                    </div>
+                    <div class="box-body">
+                        @*@Html.TextAreaFor(model => model.PreviousDetail, new { @class = "col-md-12", @style = "border: none!important; background: none!important;", @rows = 15 })*@
+                        <table id="tblDetailBefore" style="width:100%"
+                               class="table table-bordered table-striped dataTable no-footer"
+                               role="grid">
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="box box-warning">
+                    <div class="box-header">
+                        <h5><b>After Change</b></h5>
+                    </div>
+                    <div class="box-body">
+                        @*@Html.TextAreaFor(model => model.Detail, new { @class = "col-md-12", @style = "border: none!important; background: none!important;", @rows = 15 })*@
+                        <table id="tblDetail" style="width:100%"
+                               class="table table-bordered table-striped dataTable no-footer"
+                               role="grid">
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal-footer">
+        <div class="form-group col-md-6 pull-right no-padding">
+            <div class="form-group col-md-4">
+                <button id="btnSubmit" type="submit" name="Approve" class="form-control btn btn-success btn-flat">
+                    <i class="fa fa-thumbs-up"></i> &nbsp; Approve
+                </button>
+            </div>
+            <div class="form-group col-md-4">
+                <button id="btnReject" type="submit" name="Reject" class="form-control btn btn-danger btn-flat">
+                    <i class="fa fa-thumbs-down"></i> &nbsp; Reject
+                </button>
+            </div>
+            <div class="form-group col-md-4">
+                <button type="button" class="form-control btn btn-default btn-flat" onclick="fClose()">
+                    <i class="fa fa-close"></i> &nbsp; Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+
+    $('#mdlInput').on('shown.bs.modal', function () {
+        try {
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                //fClose();
+            })
+        }
+    });
+
+    $('#frmInput').submit(function (e) {
+        e.preventDefault();
+
+        var btn = $(this).find("button[type=submit]:focus" );
+        var actionName = btn.attr("name");
+        var iStatusId = actionName.indexOf("Reject") > -1 ? 3 : 2;
+
+        if (actionName.indexOf("Reject") > -1) {
+            if ($("#Remark").val().length < 1) {
+                swal({
+                    title: "Warning...",
+                    text: "Please fill Remark...",
+                    type: 'warning'
+                }).then(function () {
+                    $("#Remark").focus();
+                })
+
+                return false;
+            }
+        }
+
+        var form = $(this)[0];
+        var data = new FormData(form);
+        data.append('ApprovalStatusId', iStatusId);
+
+        $.ajax({
+            url: '@Url.Action("PostAsync", "Approval")',
+            data: data,
+            type: "POST",
+            enctype: 'multipart/form-data',
+            processData: false,
+            contentType: false,
+            cache: false,
+            timeout: 600000,
+            success: function (data) {
+                if (data["isSuccess"]) {
+                    swal({
+                        title: "Success...",
+                        text: data["message"],
+                        type: 'success'
+                    }).then(function () {
+                        CloseModalInput('tblApprovalList');
+                    })
+                } else {
+                    swal({
+                        title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                        text: "Please safe the Reference Number and call your System Administrator.",
+                        type: 'warning'
+                    })
+                }
+            },
+            error: function (xhr, status, error) {
+                swal({
+                    title: window.location.href,
+                    text: "( Error " + xhr.status + " ) - " + error,
+                    type: 'warning'
+                }).then(function () {
+                    CloseModalInput('tblApprovalList');
+                })
+            }
+        });
+        return false;
+    });
+
+</script>

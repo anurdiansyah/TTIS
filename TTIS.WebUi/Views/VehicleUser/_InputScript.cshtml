@@ -1,0 +1,186 @@
+﻿@using Microsoft.Extensions.Options;
+@using TTIS.WebUi.Configuration;
+@inject IOptions<TtsiApi> ttsiApi
+
+<script id="InputScript">
+
+    function fAdd() {
+        $("#vehicleDetail").find("select, input, textarea").each(function () {
+            $(this).val('');
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+
+        $("#VehicleImage").attr("readonly", true);
+        $("#Bpkbimage").attr("readonly", true);
+        $("#Stnkimage").attr("readonly", true);
+        $("#Kirimage").attr("readonly", true);
+
+        $("#btnSubmit").show();
+        OpenModalInput('Add New')
+    }
+
+    function fEdit(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#vehicleDetail").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", true);
+            $(this).attr("disabled", true);
+        });
+
+        $("#vehicleUserDetail").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+
+        $("#btnSubmit").show();
+
+        Get(iId, "Edit");
+    }
+
+    function fShowDetail(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", true);
+            $(this).attr("disabled", true);
+        });
+
+        $("#vehicleUserDetail").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", true);
+            $(this).attr("disabled", true);
+        });
+
+        $("#btnSubmit").hide();
+
+        Get(iId, "Detail");
+    }
+
+    function fDelete(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        swal({
+            title: "Anda yakin?",
+            text: "Anda tidak akan dapat membatalkan tindakan ini!",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: 'Lanjutkan',
+            cancelButtonText: "Batalkan",
+        }).then(result =>
+        {
+            if (result.value) {
+                Delete(iId);
+            }
+        });
+    }
+
+    function Get(p_iId, p_sActionName) {
+        try {
+            $.ajax({
+                url: '@Url.Action("GetVehicleUserAsync", "VehicleUser")',
+                type: "POST",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        obj = jQuery.parseJSON(data["jsonData"]);
+                        if (obj == null) {
+
+                        }
+                        $("#frmInput").find("select, input, textarea").each(function () {
+                            if (this.name.toLowerCase().indexOf('date') > -1) {
+                                var date = new Date(obj[this.name]);
+                                $("#" + this.name).val(moment(date).format("DD MMMM YYYY"))
+                            } else {
+                                $("#" + this.name).val(obj[this.name])
+                            }
+                        });
+
+                        $("#imgVehicle").attr("src", "@ttsiApi.Value.ApiUrl/images/vehicle?id=" + obj.VehicleImage);
+                        $("#imgBpkb").attr("src", "@ttsiApi.Value.ApiUrl/images/vehicle?id=" + obj.Bpkbimage);
+                        $("#imgStnk").attr("src", "@ttsiApi.Value.ApiUrl/images/vehicle?id=" + obj.Stnkimage);
+                        $("#imgKir").attr("src", "@ttsiApi.Value.ApiUrl/images/vehicle?id=" + obj.Kirimage);
+
+                        OpenModalInput(p_sActionName)
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblVehicleUserList');
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblVehicleUserList');
+            })
+        }
+    };
+
+    function Delete(p_iId){
+        try {
+            $.ajax({
+                url: '@Url.Action("DeleteAsync", "VehicleUser")',
+                type: "DELETE",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: 'Success!',
+                            text: data["message"],
+                            type: 'success'
+                        }).then
+                            (function () {
+                                RefreshDataTable('tblVehicleUserList');
+                            });
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblVehicleUserList');
+            })
+        }
+    };
+
+    function fClose() {
+        CloseModalInput();
+    }
+
+</script>

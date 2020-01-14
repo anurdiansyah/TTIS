@@ -1,0 +1,442 @@
+﻿@model Crews
+
+@{
+    ViewBag.Title = "Crew";
+}
+<style type="text/css">
+    .image-preview-input {
+        position: relative;
+        overflow: hidden;
+        margin: 0px;
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+    }
+
+        .image-preview-input input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+
+    .image-preview-input-title {
+        margin-left: 2px;
+    }
+</style>
+
+@using (Html.BeginForm("PutAsync", "Crews", FormMethod.Post, new { id = "frmInput", enctype = "multipart/form-data", autocomplete = "off" }))
+{
+    <div class="modal-header">
+        <h3>
+            <i class="fa fa-user"></i>&nbsp;&nbsp;<span id="spnActionName"></span> @ViewBag.Title
+        </h3>
+    </div>
+
+    <div class="modal-body" style="max-height: calc(100vh - 240px) !important; overflow-y: auto !important;">
+        @Html.HiddenFor(model => model.Id)
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="row">
+
+                    <div class="form-group col-md-4">
+                        <div class="box box-success">
+                            <div class="box-header with-border">
+                                <h3 class="box-title">Informasi Crew</h3>
+                            </div>
+                            <div class="box-body">
+                                <div class="row">
+                                    <div class="form-group col-md-12">
+                                        <img class="profile-user-img img-responsive img-circle" id="imgCrew" style="width:40% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Crew Photo">
+
+                                        <!-- image-preview-filename input [CUT FROM HERE]-->
+                                        <div id="usrImagePreview" class="input-group image-preview">
+                                            @Html.TextBoxFor(model => model.PhotoId, new { @class = "form-control image-preview-filename", @readonly = "true" })
+
+                                            <span class="input-group-btn">
+                                                <!-- image-preview-clear button -->
+                                                <button id="btnClearCrewPhoto" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                                    <span class="glyphicon glyphicon-remove"></span> Clear
+                                                </button>
+                                                <!-- image-preview-input -->
+                                                <div class="btn btn-default btn-flat image-preview-input">
+                                                    <span class="glyphicon glyphicon-folder-open"></span>
+                                                    <span id="btnBrowseCrewTitle" class="image-preview-input-title">Browse</span>
+                                                    <input id="fileCrewPhoto" type="file" accept="image/jpeg" name="fileCrewPhoto" />
+                                                </div>
+                                            </span>
+
+                                            <script>
+                                                $(function () {
+                                                    // Create the close button
+                                                    var closebtn = $('<button/>', {
+                                                        type: "button",
+                                                        text: 'x',
+                                                        id: 'close-preview-crew-image',
+                                                        style: 'font-size: initial;',
+                                                    });
+                                                    closebtn.attr("class", "close pull-right");
+
+                                                    // Set the popover default content
+                                                    $('#usrImagePreview').popover({
+                                                        trigger: 'manual',
+                                                        html: true,
+                                                        title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                                                        content: "There's no image",
+                                                        placement: 'bottom'
+                                                    });
+
+                                                    // Clear event
+                                                    $('#btnClearCrewPhoto').click(function () {
+                                                        var img = $('#imgCrew');
+
+                                                        img.attr('src', '@Url.Content("~/Assets/dist/img/default/no_photo.png")');
+                                                        $('#PhotoId').val("");
+                                                        $('#btnClearCrewPhoto').hide();
+                                                        $('#fileCrewPhoto').val("");
+                                                        $('#btnBrowseCrewTitle').text("Browse");
+
+                                                    });
+
+                                                    // Create the preview image
+                                                    $("#fileCrewPhoto").change(function () {
+                                                        var img = $('#imgCrew');
+                                                        var file = this.files[0];
+                                                        var reader = new FileReader();
+                                                        // Set preview image into the popover data-content
+                                                        reader.onload = function (e) {
+                                                            $('#btnBrowseCrewTitle').text("Change");
+                                                            $("#btnClearCrewPhoto").show();
+                                                            $("#PhotoId").val(file.name);
+                                                            img.attr('src', e.target.result);
+                                                        }
+                                                        reader.readAsDataURL(file);
+                                                    });
+                                                });
+                                            </script>
+
+                                        </div>
+                                        <!-- /input-group image-preview [TO HERE]-->
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="form-group col-md-12">
+                                        <label>
+                                            Nama
+                                        </label>
+                                        @Html.TextBoxFor(model => model.Name, new { @placeholder = "Nama", @class = "form-control", @required = "true", })
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>
+                                            Status
+                                        </label>
+                                        @Html.TextBoxFor(model => model.Status, new { @placeholder = "Status", @class = "form-control", @required = "true", })
+                                    </div>
+                                    <div class="form-group col-md-8">
+                                        <label>
+                                            Tanggal Bergabung
+                                        </label>
+                                        @Html.TextBoxFor(model => model.JoinDate, new { @placeholder = "Tanggal Bergabung", @class = "form-control", @required = "true", })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <div class="box box-success">
+                            <div class="box-header with-border">
+                                <h3 class="box-title">Informasi Identitas</h3>
+                            </div>
+                            <div class="box-body">
+                                <div class="row">
+                                    <div class="row">
+                                        <div class="form-group col-md-12">
+                                            <img class="profile-user-img img-responsive" id="imgIdentity" style="width:60% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Identity Photo">
+
+                                            <!-- image-preview-filename input [CUT FROM HERE]-->
+                                            <div id="usrImagePreview" class="input-group image-preview">
+                                                @Html.TextBoxFor(model => model.IdentityImage, new { @class = "form-control image-preview-filename", @readonly = "true" })
+
+                                                <span class="input-group-btn">
+                                                    <!-- image-preview-clear button -->
+                                                    <button id="btnClearIdentityPhoto" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                                        <span class="glyphicon glyphicon-remove"></span> Clear
+                                                    </button>
+                                                    <!-- image-preview-input -->
+                                                    <div class="btn btn-default btn-flat image-preview-input">
+                                                        <span class="glyphicon glyphicon-folder-open"></span>
+                                                        <span id="btnBrowseIdentityTitle" class="image-preview-input-title">Browse</span>
+                                                        <input id="fileIdentityPhoto" type="file" accept="image/jpeg" name="fileIdentityPhoto" />
+                                                    </div>
+                                                </span>
+
+                                                <script>
+                                                $(function () {
+                                                    // Create the close button
+                                                    var closebtn = $('<button/>', {
+                                                        type: "button",
+                                                        text: 'x',
+                                                        id: 'close-preview-Identity-image',
+                                                        style: 'font-size: initial;',
+                                                    });
+                                                    closebtn.attr("class", "close pull-right");
+
+                                                    // Set the popover default content
+                                                    $('#usrImagePreview').popover({
+                                                        trigger: 'manual',
+                                                        html: true,
+                                                        title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                                                        content: "There's no image",
+                                                        placement: 'bottom'
+                                                    });
+
+                                                    // Clear event
+                                                    $('#btnClearIdentityPhoto').click(function () {
+                                                        var img = $('#imgIdentity');
+
+                                                        img.attr('src', '@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")');
+                                                        $('#IdentityImage').val("");
+                                                        $('#btnClearIdentityPhoto').hide();
+                                                        $('#fileIdentityPhoto').val("");
+                                                        $('#btnBrowseIdentityTitle').text("Browse");
+
+                                                    });
+
+                                                    // Create the preview image
+                                                    $("#fileIdentityPhoto").change(function () {
+                                                        var img = $('#imgIdentity');
+                                                        var file = this.files[0];
+                                                        var reader = new FileReader();
+                                                        // Set preview image into the popover data-content
+                                                        reader.onload = function (e) {
+                                                            $('#btnBrowseIdentityTitle').text("Change");
+                                                            $("#btnClearIdentityPhoto").show();
+                                                            $("#IdentityImage").val(file.name);
+                                                            img.attr('src', e.target.result);
+                                                        }
+                                                        reader.readAsDataURL(file);
+                                                    });
+                                                });
+                                                </script>
+
+                                            </div>
+                                            <!-- /input-group image-preview [TO HERE]-->
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group col-md-4">
+                                        <label>
+                                            NIK
+                                        </label>
+                                        @Html.TextBoxFor(model => model.KtpNo, new { @placeholder = "Nomor Induk Kependudukan", @class = "form-control", @required = "true", })
+                                    </div>
+                                    <div class="form-group col-md-8">
+                                        <label>
+                                            Nama
+                                        </label>
+                                        @Html.TextBoxFor(model => model.KtpName, new { @placeholder = "Nama KTP", @class = "form-control", @required = "true", })
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>
+                                            Tempat Lahir
+                                        </label>
+                                        @Html.TextBoxFor(model => model.BirthPlace, new { @placeholder = "Tempat Lahir", @class = "form-control", @required = "true", })
+                                    </div>
+                                    <div class="form-group col-md-8">
+                                        <label>
+                                            Tanggal Lahir
+                                        </label>
+                                        @Html.TextBoxFor(model => model.BirthDate, "{0:d MMM yyyy}", new { @placeholder = "Tanggal Lahir", @class = "form-control", @required = "true", })
+                                    </div>
+                                    <div class="form-group col-md-12">
+                                        <label>
+                                            Alamat
+                                        </label>
+                                        @Html.TextAreaFor(model => model.KtpAddress, new { @placeholder = "Alamat", @class = "form-control", @required = "true", @rows = "4" })
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label>
+                                            Desa/Kelurahan
+                                        </label>
+                                        @Html.TextAreaFor(model => model.KtpVillage, new { @placeholder = "Desa/Kelurahan", @class = "form-control", @required = "true", })
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label>
+                                            Kecamatan
+                                        </label>
+                                        @Html.TextAreaFor(model => model.KtpSubdistrict, new { @placeholder = "Kecamatan", @class = "form-control", @required = "true", })
+                                    </div>
+                                    <div class="form-group col-md-12">
+                                        <label>
+                                            Kota
+                                        </label>
+                                        @Html.TextBoxFor(model => model.KtpCity, new { @placeholder = "Kota", @class = "form-control", @required = "true", })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-4">
+                        <div class="box box-success">
+                            <div class="box-header with-border">
+                                <h3 class="box-title">Surat Izin Mengemudi</h3>
+                            </div>
+                            <div class="box-body">
+                                <div class="row">
+                                    <div class="form-group col-md-12">
+                                        <img class="profile-user-img img-responsive" id="imgLicense" style="width:60% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Crew License Image">
+
+                                        <!-- image-preview-filename input [CUT FROM HERE]-->
+                                        <div id="licenseImagePreview" class="input-group image-preview">
+                                            @Html.TextBoxFor(model => model.LicenseImage, new { @class = "form-control image-preview-filename", @readonly = "true" })
+                                            <span class="input-group-btn">
+                                                <!-- image-preview-clear button -->
+                                                <button id="btnClearLicensePhoto" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                                    <span class="glyphicon glyphicon-remove"></span> Clear
+                                                </button>
+                                                <!-- image-preview-input -->
+                                                <div class="btn btn-default btn-flat image-preview-input">
+                                                    <span class="glyphicon glyphicon-folder-open"></span>
+                                                    <span class="LicenseImageBrowseTitle">Browse</span>
+                                                    <input id="fileLicenseImage" type="file" accept="image/jpeg" name="fileLicenseImage" />
+                                                </div>
+                                            </span>
+
+                                            <script>
+                                                $(function () {
+                                                    // Create the close button
+                                                    var closebtn = $('<button/>', {
+                                                        type: "button",
+                                                        text: 'x',
+                                                        id: 'close-preview',
+                                                        style: 'font-size: initial;',
+                                                    });
+                                                    closebtn.attr("class", "close pull-right");
+
+                                                    // Set the popover default content
+                                                    $('#licenseImagePreview').popover({
+                                                        trigger: 'manual',
+                                                        html: true,
+                                                        title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                                                        content: "There's no image",
+                                                        placement: 'bottom'
+                                                    });
+
+                                                    // Clear event
+                                                    $('#btnClearLicensePhoto').click(function () {
+                                                        var img = $('#imgLicense');
+
+                                                        img.attr('src', '@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")');
+                                                        $('#LicenseImage').val("");
+                                                        $('#btnClearLicensePhoto').hide();
+                                                        $('#fileLicenseImage').val("");
+                                                        $("#LicenseImageBrowseTitle").text("Browse");
+
+                                                    });
+
+                                                    // Create the preview image
+                                                    $("#fileLicenseImage").change(function () {
+                                                        var img = $('#imgLicense');
+                                                        var file = this.files[0];
+                                                        var reader = new FileReader();
+                                                        // Set preview image into the popover data-content
+                                                        reader.onload = function (e) {
+                                                            $("#LicenseImageBrowseTitle").text("Change");
+                                                            $("#btnClearLicensePhoto").show();
+                                                            $("#LicenseImage").val(file.name);
+                                                            img.attr('src', e.target.result);
+                                                        }
+                                                        reader.readAsDataURL(file);
+                                                    });
+                                                });
+                                            </script>
+
+                                        </div>
+                                        <!-- /input-group image-preview [TO HERE]-->
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="form-group col-md-4">
+                                        <label>
+                                            Tipe
+                                        </label>
+                                        @Html.TextBoxFor(model => model.LicenseType, new { @placeholder = "Tipe Sim", @class = "form-control" })
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>
+                                            Kota
+                                        </label>
+                                        @Html.TextBoxFor(model => model.LicenseCity, new { @placeholder = "Kota", @class = "form-control" })
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label>
+                                            Nomor
+                                        </label>
+                                        @Html.TextBoxFor(model => model.LicenseNumber, new { @placeholder = "Nomor", @class = "form-control" })
+                                    </div>
+                                    <div class="form-group col-md-12">
+                                        <label>
+                                            Tanggal Kadaluarsa
+                                        </label>
+                                        @Html.TextBoxFor(model => model.LicenseExpiryDate, "{0:d MMM yyyy}", new { @placeholder = "Tanggal Kadaluarsa", @class = "form-control" })
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal-footer">
+        <div class="form-group col-md-12" style="text-align:right !important;">
+            <button id="btnSubmit" type="submit" class="btn btn-success btn-flat" style="width:20% !important; margin-right:4px;">
+                <i class="fa fa-save"></i> &nbsp; Simpan
+            </button>
+
+            <button type="button" class="btn btn-default btn-flat" style="width:20% !important; margin-left:4px;" onclick="fClose()">
+                <i class="fa fa-close"></i> &nbsp; Tutup
+            </button>
+        </div>
+    </div>
+
+    <script>
+        $('#mdlInput').on('shown.bs.modal', function () {
+            try {
+                $('#JoinDate').datepicker({
+                    autoclose: true,
+                    format: 'dd MM yyyy'
+                });
+                $('#BirthDate').datepicker({
+                    autoclose: true,
+                    format: 'dd MM yyyy'
+                });
+                $('#LicenseExpiryDate').datepicker({
+                    autoclose: true,
+                    format: 'dd MM yyyy'
+                });
+            }
+            catch (err) {
+                swal({
+                    title: 'From Catch',
+                    text: err.message,
+                    type: 'warning'
+                }).then(function () {
+                    fClose()
+                })
+            }
+        });
+    </script>
+}

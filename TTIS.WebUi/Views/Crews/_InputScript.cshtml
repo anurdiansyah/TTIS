@@ -1,0 +1,160 @@
+﻿@using Microsoft.Extensions.Options;
+@using TTIS.WebUi.Configuration;
+@inject IOptions<TtsiApi> ttsiApi
+
+<script id="InputScript">
+
+    function fAdd() {
+        $("#frmInput").find("select, input").each(function () {
+            $(this).attr("readonly", false);
+        });
+
+        $("#PhoneNumberConfirmed").attr("readonly", true);
+        $("#EmailConfirmed").attr("readonly", true);
+
+        $("#btnSubmit").show();
+
+        OpenModalInput('Add New')
+    }
+
+    function fEdit(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+
+        $("#PhotoId").attr("readonly", true);
+        $("#LicenseImage").attr("readonly", true);
+        $("#IdentityImage").attr("readonly", true);
+
+        $("#btnSubmit").show();
+        $("#dvAddGroup").show();
+
+        Get(iId, "Edit");
+    }
+
+    function fShowDetail(senderButton) {
+        window.FakeLoader.init();
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", true);
+            $(this).attr("disabled", true);
+        });
+
+        $("#btnSubmit").hide();
+        $("#dvAddGroup").hide();
+        var column = $("#tblCrewsGroup").DataTable().column(1);
+        column.visible(false);
+
+        Get(iId, "Detail");
+    }
+
+    function fDelete(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        swal({
+            title: "Anda yakin?",
+            text: "Anda tidak akan dapat membatalkan tindakan ini!",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: 'Lanjutkan',
+            cancelButtonText: "Batalkan",
+        }).then(result =>
+        {
+            if (result.value) {
+                Delete(iId);
+            }
+        });
+    }
+
+    function Get(p_iId, p_sActionName) {
+        try {
+            $.ajax({
+                url: '@Url.Action("GetCrew", "Crews")',
+                type: "POST",
+                data: { p_iCrewsId: p_iId },
+                success: function (data) {
+                    $("#frmInput").find("select, input, textarea").each(function () {
+                        if (this.name.toLowerCase().indexOf('date') > -1) {
+                            var date = new Date(data[this.name.charAt(0).toLowerCase() + this.name.slice(1)]);
+                            $("#" + this.name).val(moment(date).format("DD MMMM YYYY"))
+                        } else {
+                            $("#" + this.name).val(data[this.name.charAt(0).toLowerCase() + this.name.slice(1)])
+                        }
+                    });
+                    $("#imgCrew").attr("src","@ttsiApi.Value.ApiUrl/images/Crew?id=" + data["photoId"]);
+                    $("#imgLicense").attr("src","@ttsiApi.Value.ApiUrl/images/License?id=" + data["licenseImage"]);
+                    $("#imgIdentity").attr("src","@ttsiApi.Value.ApiUrl/images/Identity?id=" + data["identityImage"]);
+
+                    OpenModalInput(p_sActionName)
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblCrewsList');
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblCrewsList');
+            })
+        }
+    };
+
+    function Delete(p_iId){
+        try {
+            $.ajax({
+                url: '@Url.Action("DeleteCrews", "Crews")',
+                type: "POST",
+                data: { p_iCrewsId: p_iId },
+                success: function (data) {
+                    swal({
+                        title: 'Success!',
+                        text: 'Data berhasil dihapus!',
+                        type: 'success'
+                    }).then
+                    (function(){
+                        RefreshDataTable('tblCrewsList');
+                    });
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblCrewsList');
+            })
+        }
+    };
+
+    function fClose() {
+        CloseModalInput();
+    }
+
+</script>

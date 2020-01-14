@@ -1,0 +1,158 @@
+﻿<script id="InputScript">
+
+    function fAdd() {
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).val('');
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+
+        $("#btnSubmit").show();
+        OpenModalInput('Add New')
+    }
+
+    function fEdit(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+        $("#btnSubmit").show();
+
+        Get(iId, "Edit");
+    }
+
+    function fShowDetail(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", true);
+            $(this).attr("disabled", true);
+        });
+
+        $("#btnSubmit").hide();
+
+        Get(iId, "Detail");
+    }
+
+    function fDelete(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        swal({
+            title: "Anda yakin?",
+            text: "Anda tidak akan dapat membatalkan tindakan ini!",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: 'Lanjutkan',
+            cancelButtonText: "Batalkan",
+        }).then(result =>
+        {
+            if (result.value) {
+                Delete(iId);
+            }
+        });
+    }
+
+    function Get(p_iId, p_sActionName) {
+        try {
+            $.ajax({
+                url: '@Url.Action("GetTranWoAsync", "TranWo")',
+                type: "POST",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        obj = jQuery.parseJSON(data["jsonData"]);
+                        $("#frmInput").find("select, input, textarea").each(function () {
+                            if (this.name.toLowerCase().indexOf('date') > -1) {
+                                var date = new Date(obj[this.name]);
+                                $("#" + this.name).val(moment(date).format("DD MMMM YYYY"))
+                            } else {
+                                $("#" + this.name).val(obj[this.name])
+                            }
+                        });
+
+                        OpenModalInput(p_sActionName)
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblTranWoList');
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblTranWoList');
+            })
+        }
+    };
+
+    function Delete(p_iId){
+        try {
+            $.ajax({
+                url: '@Url.Action("DeleteAsync", "TranWo")',
+                type: "DELETE",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: 'Success!',
+                            text: data["message"],
+                            type: 'success'
+                        }).then
+                            (function () {
+                                RefreshDataTable('tblTranWoList');
+                            });
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblTranWoList');
+            })
+        }
+    };
+
+    function fClose() {
+        CloseModalInput();
+    }
+
+</script>

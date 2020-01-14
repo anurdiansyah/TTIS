@@ -1,0 +1,403 @@
+﻿@using Microsoft.Extensions.Options;
+@using TTIS.WebUi.Configuration;
+@inject IOptions<TtsiApi> ttsiApi
+
+<script id="InputScript">
+
+    function fAdd() {
+        $("#dvUserDetail").find("select, input, textarea").each(function () {
+            $(this).val("");
+            $(this).attr("readonly", true);
+        });
+
+        $("#TagNumber").val("");
+        $("#TagNumber").attr("disabled", false);
+        $("#TagNumber").attr("readonly", false);
+        $("#ddlRoleAccess").attr("readonly", false);
+        $("#ddlRoleAccess").attr("disabled", false);
+        $("#PhoneNumber").attr("readonly", false);
+        $("#PhoneNumber").attr("disabled", false);
+
+        $("#btnSubmit").show();
+        $("#btnValidate").show();
+        $("#dvNewRole").show();
+
+        $("#ddlRoleAccess").val("");
+        $("#EmployeeDetail").val("");
+        $("#imgEmployee").attr("src", "@ttsiApi.Value.ApiUrl/images/Employee?id=00000000-0000-0000-0000-000000000000");
+
+        Get("00000000-0000-0000-0000-000000000000", "Add");
+        OpenModalInput('Add New')
+    }
+
+    function fEdit(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#dvUserDetail").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+
+        $("#TagNumber").attr("disabled", true);
+        $("#TagNumber").attr("readonly", true);
+        $("#btnSubmit").show();
+        $("#btnValidate").hide();
+        $("#dvNewRole").show();
+
+        $("#EmployeeDetail").attr("readonly", true);
+
+        Get(iId, "Edit");
+    }
+
+    function fShowDetail(senderButton) {
+        window.FakeLoader.init();
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", true);
+            $(this).attr("disabled", true);
+        });
+        $("#btnValidate").hide();
+        $("#dvNewRole").hide();
+
+        $("#btnSubmit").hide();
+        var column = $("#tblAspNetUsersGroup").DataTable().column(1);
+        column.visible(false);
+
+        Get(iId, "Detail");
+    }
+
+    function fDelete(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        swal({
+            title: "Anda yakin?",
+            text: "Anda tidak akan dapat membatalkan tindakan ini!",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: 'Lanjutkan',
+            cancelButtonText: "Batalkan",
+        }).then(result =>
+        {
+            if (result.value) {
+                Delete(iId);
+            }
+        });
+    }
+
+    function Get(p_iId, p_sActionName) {
+        try {
+            $.ajax({
+                url: '@Url.Action("GetAspNetUser", "AspNetUsers")',
+                type: "POST",
+                data: { p_iAspNetUsersId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        var obj = jQuery.parseJSON(data["jsonData"]);
+
+                        $("#dvUserDetail").find("select, input, textarea").each(function () {
+                            if (this.name.toLowerCase().indexOf('date') > -1) {
+                                var date = new Date(obj[this.name]);
+                                $("#" + this.name).val(moment(date).format("DD MMMM YYYY"))
+                            } else {
+                                $("#" + this.name).val(obj[this.name])
+                            }
+                        });
+
+                        if (obj["UserDetail"] != null) {
+                            $("#TagNumber").val(obj["UserDetail"]["TagNumber"]);
+                            DetailEmployee(obj["UserDetail"]["TagNumber"]);
+                        } else {
+                            $("#TagNumber").val('');
+                        }
+
+                        OpenModalInput(p_sActionName)
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblAspNetUsersList');
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblAspNetUsersList');
+            })
+        }
+    };
+
+    function Delete(p_iId) {
+        try {
+            $.ajax({
+                url: '@Url.Action("DeleteAsync", "AspNetUsers")',
+                type: "DELETE",
+                data: { p_iAspNetUsersId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: 'Success!',
+                            text: data["message"],
+                            type: 'success'
+                        }).then
+                            (function () {
+                                RefreshDataTable('tblAspNetUsersList');
+                            });
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblAspNetUsersList');
+            })
+        }
+    };
+
+    function DetailEmployee(TagNumber) {
+        if (TagNumber !== "" ) {
+            $.ajax({
+                url: '@Url.Action("ValidateEmployee", "AspNetUsers")',
+                type: "POST",
+                data: { p_sTagNumber: TagNumber },
+                success: function (data) {
+                    obj = jQuery.parseJSON(data["jsonData"]);
+                        if (obj.EmployeeId != '00000000-0000-0000-0000-000000000000') {
+                            var sInfoKaryawan = "Nama Panggilan : " + obj.NickName + "\n" +
+                                "Nama Lengkap : " + obj.FirstName + " " + obj.MiddleName + " " + obj.LastName + "\n" +
+                                "Status Karyawan : " + obj.EmployeeStatus + "\n\n" +
+                                "Alamat Tinggal : " + obj.LivingAddress + "\n" +
+                                "Desa / Kelurahan : " + obj.LivingDistrict + "\n" +
+                                "Kecamatan : " + obj.LivingDistrict + "\n" +
+                                "Kota : " + obj.LivingCity + "\n" +
+                                "Provinsi : " + obj.LivingProvince + "\n" +
+                                "";
+
+                            $("#EmployeeDetail").val(sInfoKaryawan);
+
+                            $("#UserName").val(TagNumber + "@@gitterns.com");
+                            $("#NormalizedUserName").val(TagNumber + "@@GITTERNS.com");
+                            $("#Email").val(TagNumber + "@@gitterns.com");
+                            $("#NormalizedEmail").val(TagNumber + "@@GITTERNS.com");
+                            $("#PhoneNumber").val(data["phoneNumber"]);
+
+                            $("#imgEmployee").attr("src", "@ttsiApi.Value.ApiUrl/images/Employee?id=" + obj.PasPhoto);
+                        } else {
+                            swal({
+                                title: "Oops, Maaf",
+                                text: "Kami tidak dapat menemukan karyawan dengan Nomor Tag : " + $("#TagNumber").val(),
+                                type: 'warning'
+                            }).then(function () {
+                                $("#EmployeeDetail").val('');
+                                $("#UserName").val('');
+                                $("#NormalizedUserName").val('');
+                                $("#Email").val('');
+                                $("#NormalizedEmail").val('');
+                                $("#PhoneNumber").val('');
+                            });
+                        }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblAspNetUsersList');
+                    })
+                }
+            });
+        }
+    }
+
+    function ValidateEmployee() {
+        var TagNumber = $("#TagNumber").val();
+
+        if (TagNumber !== "" ) {
+            $.ajax({
+                url: '@Url.Action("ValidateEmployee", "AspNetUsers")',
+                type: "POST",
+                data: { p_sTagNumber: TagNumber },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        obj = jQuery.parseJSON(data["jsonData"]);
+                        if (obj.EmployeeId != '00000000-0000-0000-0000-000000000000' && obj.EmployeeId != null ) {
+                            var sInfoKaryawan = "Nama Panggilan : " + obj.NickName + "\n" +
+                                "Nama Lengkap : " + obj.FirstName + " " + obj.MiddleName + " " + obj.LastName + "\n" +
+                                "Status Karyawan : " + obj.EmployeeStatus + "\n\n" +
+                                "Alamat Tinggal : " + obj.LivingAddress + "\n" +
+                                "Desa / Kelurahan : " + obj.LivingDistrict + "\n" +
+                                "Kecamatan : " + obj.LivingDistrict + "\n" +
+                                "Kota : " + obj.LivingCity + "\n" +
+                                "Provinsi : " + obj.LivingProvince + "\n" +
+                                "";
+
+                            $("#EmployeeDetail").val(sInfoKaryawan);
+
+                            $("#UserName").val(TagNumber + "@@gitterns.com");
+                            $("#NormalizedUserName").val(TagNumber + "@@GITTERNS.com");
+                            $("#Email").val(TagNumber + "@@gitterns.com");
+                            $("#NormalizedEmail").val(TagNumber + "@@GITTERNS.com");
+                            $("#PhoneNumber").val(data["phoneNumber"]);
+
+                            $("#imgEmployee").attr("src", "@ttsiApi.Value.ApiUrl/images/Employee?id=" + obj.PasPhoto);
+                        } else {
+                            swal({
+                                title: "Oops, Sorry",
+                                text: "Kami tidak dapat menemukan karyawan dengan Nomor Tag : " + $("#TagNumber").val(),
+                                type: 'warning'
+                            }).then(function () {
+                                $("#EmployeeDetail").val('');
+                                $("#UserName").val('');
+                                $("#NormalizedUserName").val('');
+                                $("#Email").val('');
+                                $("#NormalizedEmail").val('');
+                                $("#PhoneNumber").val('');
+                            });
+                        }
+                    } else {
+                        swal({
+                            title: "Oops, Sorry",
+                            text: data["message"],
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblAspNetUsersList');
+                    })
+                }
+            });
+        }
+    }
+
+    function fClose() {
+        CloseModalInput('tblAspNetUsersList');
+        RefreshDataTable('tblRoleAccess');
+    }
+
+    function fAddRole() {
+        var ddlRoleAccess = $("#ddlRoleAccess");
+
+        try {
+            $.ajax({
+                url: '@Url.Action("AddRoleAccess", "AspNetUsers")',
+                type: "POST",
+                data: { p_iRoleAccessId: ddlRoleAccess.val() },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        RefreshDataTable('tblRoleAccess');
+                    } else {
+                        swal({
+                            title: "Oops...",
+                            text: data["message"],
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblAspNetUsersList');
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblAspNetUsersList');
+            })
+        }
+    }
+
+    function fDeleteRole(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        try {
+            $.ajax({
+                url: '@Url.Action("DeleteRoleAccess", "AspNetUsers")',
+                type: "POST",
+                data: { p_iRoleAccessId: iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        RefreshDataTable('tblRoleAccess');
+                    } else {
+                        swal({
+                            title: "Oops...",
+                            text: data["message"],
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblAspNetUsersList');
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblAspNetUsersList');
+            })
+        }
+    }
+
+</script>

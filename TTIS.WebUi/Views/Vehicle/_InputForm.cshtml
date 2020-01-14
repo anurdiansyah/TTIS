@@ -1,0 +1,591 @@
+﻿@using Nancy.Json
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@model MasVehicle
+
+@{
+    List<SelectListItem> lstVehicleTypes = new List<SelectListItem>();
+    lstVehicleTypes.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+    foreach (MasVehicleType oVehicleType in new JavaScriptSerializer().Deserialize<List<MasVehicleType>>(HttpContextAccessor.HttpContext.Session.GetString("VehicleTypes")))
+    {
+        lstVehicleTypes.Add(new SelectListItem { Value = oVehicleType.VehicleTypeId.ToString(), Text = oVehicleType.Name });
+    }
+
+    List<SelectListItem> lstVehicleModels = new List<SelectListItem>();
+    lstVehicleModels.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+
+    List<SelectListItem> lstVehicleStatuses = new List<SelectListItem>();
+    lstVehicleStatuses.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+    foreach (MasVehicleStatus oVehicleStatus in new JavaScriptSerializer().Deserialize<List<MasVehicleStatus>>(HttpContextAccessor.HttpContext.Session.GetString("VehicleStatuses")))
+    {
+        lstVehicleStatuses.Add(new SelectListItem { Value = oVehicleStatus.VehicleStatusId.ToString(), Text = oVehicleStatus.Name });
+    }
+
+    List<SelectListItem> lstFuels = new List<SelectListItem>();
+    lstFuels.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+    foreach (MasFuel oFuel in new JavaScriptSerializer().Deserialize<List<MasFuel>>(HttpContextAccessor.HttpContext.Session.GetString("Fuels")))
+    {
+        lstFuels.Add(new SelectListItem { Value = oFuel.FuelId.ToString(), Text = oFuel.Name });
+    }
+
+    List<SelectListItem> lstDocumentPositions = new List<SelectListItem>();
+    lstDocumentPositions.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+    foreach (SysDocumentPosition oDocumentPosition in new JavaScriptSerializer().Deserialize<List<SysDocumentPosition>>(HttpContextAccessor.HttpContext.Session.GetString("DocumentPositions")))
+    {
+        lstDocumentPositions.Add(new SelectListItem { Value = oDocumentPosition.DocumentPositionId.ToString(), Text = oDocumentPosition.Name });
+    }
+}
+<style type="text/css">
+    .image-preview-input {
+        position: relative;
+        overflow: hidden;
+        margin: 0px;
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+    }
+
+        .image-preview-input input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+
+    .image-preview-input-title {
+        margin-left: 2px;
+    }
+</style>
+
+@using (Html.BeginForm("PostAsync", "Vehicle", FormMethod.Post, new { id = "frmInput", enctype = "multipart/form-data", autocomplete = "off" }))
+{
+    <div class="modal-header">
+        <h3>
+            <i class="fa fa-user"></i>&nbsp;&nbsp;<span id="spnActionName"></span> @ViewBag.Title
+        </h3>
+    </div>
+
+    <div class="modal-body" style="max-height: calc(100vh - 240px) !important; overflow-y: auto !important;">
+        @Html.HiddenFor(model => model.VehicleId)
+
+        <div class="row">
+
+            <div class="box box-primary">
+                <div class="box-header">
+                    <h3>Vehicle Info</h3>
+                </div>
+                <div class="box-body">
+                    <div class="col-md-4">
+                        <div class="box box-primary">
+                            <div class="box-body">
+                                <div class="form-group col-md-12">
+                                    <img class="profile-user-img img-responsive" id="imgVehicle" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Vehicle ">
+
+                                    <!-- image-preview-filename input [CUT FROM HERE]-->
+                                    <div id="usrImagePreview" class="input-group image-preview">
+                                        @Html.TextBoxFor(model => model.VehicleImage, new { @class = "form-control image-preview-filename", @readonly = "true", @required = true })
+
+                                        <span class="input-group-btn">
+                                            <!-- image-preview-clear button -->
+                                            <button id="btnClearVehicleImage" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                                <span class="glyphicon glyphicon-remove"></span> Clear
+                                            </button>
+                                            <!-- image-preview-input -->
+                                            <div class="btn btn-default btn-flat image-preview-input">
+                                                <span class="glyphicon glyphicon-folder-open"></span>
+                                                <span id="btnBrowseVehicle" class="image-preview-input-title">Browse</span>
+                                                <input id="fileVehicleImage" type="file" accept="image/jpeg" name="fileVehicleImage" />
+                                            </div>
+                                        </span>
+
+                                        <script>
+                                            $(function () {
+                                                // Create the close button
+                                                var closebtn = $('<button/>', {
+                                                    type: "button",
+                                                    text: 'x',
+                                                    id: 'close-preview-Vehicle-image',
+                                                    style: 'font-size: initial;',
+                                                });
+                                                closebtn.attr("class", "close pull-right");
+
+                                                // Set the popover default content
+                                                $('#usrImagePreview').popover({
+                                                    trigger: 'manual',
+                                                    html: true,
+                                                    title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                                                    content: "There's no image",
+                                                    placement: 'bottom'
+                                                });
+
+                                                // Clear event
+                                                $('#btnClearVehicleImage').click(function () {
+                                                    var img = $('#imgVehicle');
+
+                                                    img.attr('src', '@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")');
+                                                    $('#VehicleImage').val("");
+                                                    $('#btnClearVehicleImage').hide();
+                                                    $('#fileVehicleImage').val("");
+                                                    $('#btnBrowseVehicle').text("Browse");
+
+                                                });
+
+                                                // Create the preview image
+                                                $("#fileVehicleImage").change(function () {
+                                                    var img = $('#imgVehicle');
+                                                    var file = this.files[0];
+                                                    var reader = new FileReader();
+                                                    // Set preview image into the popover data-content
+                                                    reader.onload = function (e) {
+                                                        $('#btnBrowseVehicle').text("Change");
+                                                        $("#btnClearVehicleImage").show();
+                                                        $("#VehicleImage").val(file.name);
+                                                        img.attr('src', e.target.result);
+                                                    }
+                                                    reader.readAsDataURL(file);
+                                                });
+                                            });
+                                        </script>
+
+                                    </div>
+                                    <!-- /input-group image-preview [TO HERE]-->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8 form-group">
+                        <div class="col-md-12 form-group">
+                            <label>Nomor Registrasi</label>
+                            @Html.TextBoxFor(model => model.NomorRegistrasi, new { @placeholder = "Nomor Registrasi", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-12 form-group">
+                            <label>Plate</label>
+                            @Html.TextBoxFor(model => model.Plate, new { @placeholder = "Plate", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Merk</label>
+                            @Html.TextBoxFor(model => model.Merk, new { @placeholder = "Merk", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Tipe</label>
+                            @Html.TextBoxFor(model => model.Tipe, new { @placeholder = "Tipe", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Jenis</label>
+                            @Html.DropDownListFor(model => model.TypeId, lstVehicleTypes, new { @placeholder = "Tipe", @class = "form-control", @readonly = "true", @onchange = "fFillDropDownModel()", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Model</label>
+                            @Html.DropDownListFor(model => model.ModelId, lstVehicleModels, new { @placeholder = "Tipe", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Nomor Rangka</label>
+                            @Html.TextBoxFor(model => model.NoRangka, new { @placeholder = "Nomor Rangka", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Nomor Mesin</label>
+                            @Html.TextBoxFor(model => model.NoMesin, new { @placeholder = "Nomor Mesin", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Warna</label>
+                            @Html.TextBoxFor(model => model.Warna, new { @placeholder = "Warna", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Bahan Bakar</label>
+                            @Html.DropDownListFor(model => model.FuelId, lstFuels, new { @placeholder = "Bahan Bakar", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Tahun Perakitan</label>
+                            @Html.TextBoxFor(model => model.TahunPerakitan, new { @placeholder = "Tahun Perakitan", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-3 form-group">
+                            <label>Tahun Registrasi</label>
+                            @Html.TextBoxFor(model => model.TahunRegistrasi, new { @placeholder = "Tahun Registrasi", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+
+                        <div class="col-md-6 form-group">
+                            <label>Status Kendaraan</label>
+                            @Html.DropDownListFor(model => model.VehicleStatusId, lstVehicleStatuses, new { @placeholder = "Status Kendaraan", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h3>BPKB</h3>
+                    </div>
+                    <div class="box-body">
+                        <div class="form-group col-md-12">
+                            <img class="profile-user-img img-responsive" id="imgBpkb" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Bpkb ">
+
+                            <!-- image-preview-filename input [CUT FROM HERE]-->
+                            <div id="usrImagePreview" class="input-group image-preview">
+                                @Html.TextBoxFor(model => model.Bpkbimage, new { @class = "form-control image-preview-filename", @readonly = "true", @required = true })
+
+                                <span class="input-group-btn">
+                                    <!-- image-preview-clear button -->
+                                    <button id="btnClearBpkbImage" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                        <span class="glyphicon glyphicon-remove"></span> Clear
+                                    </button>
+                                    <!-- image-preview-input -->
+                                    <div class="btn btn-default btn-flat image-preview-input">
+                                        <span class="glyphicon glyphicon-folder-open"></span>
+                                        <span id="btnBrowseBpkb" class="image-preview-input-title">Browse</span>
+                                        <input id="fileBpkbImage" type="file" accept="image/jpeg" name="fileBpkbImage" />
+                                    </div>
+                                </span>
+
+                                <script>
+                            $(function () {
+                                // Create the close button
+                                var closebtn = $('<button/>', {
+                                    type: "button",
+                                    text: 'x',
+                                    id: 'close-preview-Bpkb-image',
+                                    style: 'font-size: initial;',
+                                });
+                                closebtn.attr("class", "close pull-right");
+
+                                // Set the popover default content
+                                $('#usrImagePreview').popover({
+                                    trigger: 'manual',
+                                    html: true,
+                                    title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                                    content: "There's no image",
+                                    placement: 'bottom'
+                                });
+
+                                // Clear event
+                                $('#btnClearBpkbImage').click(function () {
+                                    var img = $('#imgBpkb');
+
+                                    img.attr('src', '@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")');
+                                    $('#Bpkbimage').val("");
+                                    $('#btnClearBpkbImage').hide();
+                                    $('#fileBpkbImage').val("");
+                                    $('#btnBrowseBpkb').text("Browse");
+
+                                });
+
+                                // Create the preview image
+                                $("#fileBpkbImage").change(function () {
+                                    var img = $('#imgBpkb');
+                                    var file = this.files[0];
+                                    var reader = new FileReader();
+                                    // Set preview image into the popover data-content
+                                    reader.onload = function (e) {
+                                        $('#btnBrowseBpkb').text("Change");
+                                        $("#btnClearBpkbImage").show();
+                                        $("#Bpkbimage").val(file.name);
+                                        img.attr('src', e.target.result);
+                                    }
+                                    reader.readAsDataURL(file);
+                                });
+                            });
+                                </script>
+
+                            </div>
+                            <!-- /input-group image-preview [TO HERE]-->
+                        </div>
+
+                        <div class="col-md-6 form-group">
+                            <label>Posisi Dokumen</label>
+                            @Html.DropDownListFor(model => model.BpkbpositionId, lstDocumentPositions, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label style="width:100%">&nbsp; </label>
+                            @Html.TextBoxFor(model => model.BpkbpositionReffId, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h3>STNK</h3>
+                    </div>
+                    <div class="box-body">
+                        <div class="form-group col-md-12">
+                            <img class="profile-user-img img-responsive" id="imgStnk" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Stnk ">
+
+                            <!-- image-preview-filename input [CUT FROM HERE]-->
+                            <div id="usrImagePreview" class="input-group image-preview">
+                                @Html.TextBoxFor(model => model.Stnkimage, new { @class = "form-control image-preview-filename", @readonly = "true", @required = true })
+
+                                <span class="input-group-btn">
+                                    <!-- image-preview-clear button -->
+                                    <button id="btnClearStnkImage" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                        <span class="glyphicon glyphicon-remove"></span> Clear
+                                    </button>
+                                    <!-- image-preview-input -->
+                                    <div class="btn btn-default btn-flat image-preview-input">
+                                        <span class="glyphicon glyphicon-folder-open"></span>
+                                        <span id="btnBrowseStnk" class="image-preview-input-title">Browse</span>
+                                        <input id="fileStnkImage" type="file" accept="image/jpeg" name="fileStnkImage" />
+                                    </div>
+                                </span>
+
+                                <script>
+                            $(function () {
+                                // Create the close button
+                                var closebtn = $('<button/>', {
+                                    type: "button",
+                                    text: 'x',
+                                    id: 'close-preview-Stnk-image',
+                                    style: 'font-size: initial;',
+                                });
+                                closebtn.attr("class", "close pull-right");
+
+                                // Set the popover default content
+                                $('#usrImagePreview').popover({
+                                    trigger: 'manual',
+                                    html: true,
+                                    title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                                    content: "There's no image",
+                                    placement: 'bottom'
+                                });
+
+                                // Clear event
+                                $('#btnClearStnkImage').click(function () {
+                                    var img = $('#imgStnk');
+
+                                    img.attr('src', '@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")');
+                                    $('#Stnkimage').val("");
+                                    $('#btnClearStnkImage').hide();
+                                    $('#fileStnkImage').val("");
+                                    $('#btnBrowseStnk').text("Browse");
+
+                                });
+
+                                // Create the preview image
+                                $("#fileStnkImage").change(function () {
+                                    var img = $('#imgStnk');
+                                    var file = this.files[0];
+                                    var reader = new FileReader();
+                                    // Set preview image into the popover data-content
+                                    reader.onload = function (e) {
+                                        $('#btnBrowseStnk').text("Change");
+                                        $("#btnClearStnkImage").show();
+                                        $("#Stnkimage").val(file.name);
+                                        img.attr('src', e.target.result);
+                                    }
+                                    reader.readAsDataURL(file);
+                                });
+                            });
+                                </script>
+
+                            </div>
+                            <!-- /input-group image-preview [TO HERE]-->
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>Posisi Dokumen</label>
+                            @Html.DropDownListFor(model => model.StnkpositionId, lstDocumentPositions, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label style="width:100%">&nbsp; </label>
+                            @Html.TextBoxFor(model => model.StnkpositionReffId, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                        <div class="col-md-12 form-group">
+                            <label>Berlaku Hingga</label>
+                            @Html.TextBoxFor(model => model.StnkberlakuHingga, new { @placeholder = "Berlaku Hingga", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h3>KIR</h3>
+                    </div>
+                    <div class="box-body">
+                        <div class="form-group col-md-12">
+                            <img class="profile-user-img img-responsive" id="imgKir" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Kir ">
+
+                            <!-- image-preview-filename input [CUT FROM HERE]-->
+                            <div id="usrImagePreview" class="input-group image-preview">
+                                @Html.TextBoxFor(model => model.Kirimage, new { @class = "form-control image-preview-filename", @readonly = "true", @required = true })
+
+                                <span class="input-group-btn">
+                                    <!-- image-preview-clear button -->
+                                    <button id="btnClearKirImage" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                        <span class="glyphicon glyphicon-remove"></span> Clear
+                                    </button>
+                                    <!-- image-preview-input -->
+                                    <div class="btn btn-default btn-flat image-preview-input">
+                                        <span class="glyphicon glyphicon-folder-open"></span>
+                                        <span id="btnBrowseKir" class="image-preview-input-title">Browse</span>
+                                        <input id="fileKirImage" type="file" accept="image/jpeg" name="fileKirImage" />
+                                    </div>
+                                </span>
+
+                                <script>
+                            $(function () {
+                                // Create the close button
+                                var closebtn = $('<button/>', {
+                                    type: "button",
+                                    text: 'x',
+                                    id: 'close-preview-Kir-image',
+                                    style: 'font-size: initial;',
+                                });
+                                closebtn.attr("class", "close pull-right");
+
+                                // Set the popover default content
+                                $('#usrImagePreview').popover({
+                                    trigger: 'manual',
+                                    html: true,
+                                    title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                                    content: "There's no image",
+                                    placement: 'bottom'
+                                });
+
+                                // Clear event
+                                $('#btnClearKirImage').click(function () {
+                                    var img = $('#imgKir');
+
+                                    img.attr('src', '@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")');
+                                    $('#Kirimage').val("");
+                                    $('#btnClearKirImage').hide();
+                                    $('#fileKirImage').val("");
+                                    $('#btnBrowseKir').text("Browse");
+
+                                });
+
+                                // Create the preview image
+                                $("#fileKirImage").change(function () {
+                                    var img = $('#imgKir');
+                                    var file = this.files[0];
+                                    var reader = new FileReader();
+                                    // Set preview image into the popover data-content
+                                    reader.onload = function (e) {
+                                        $('#btnBrowseKir').text("Change");
+                                        $("#btnClearKirImage").show();
+                                        $("#Kirimage").val(file.name);
+                                        img.attr('src', e.target.result);
+                                    }
+                                    reader.readAsDataURL(file);
+                                });
+                            });
+                                </script>
+
+                            </div>
+                            <!-- /input-group image-preview [TO HERE]-->
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label>Posisi Dokumen</label>
+                            @Html.DropDownListFor(model => model.KirpositionId, lstDocumentPositions, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label style="width:100%">&nbsp; </label>
+                            @Html.TextBoxFor(model => model.KirpositionReffId, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                        <div class="col-md-12 form-group">
+                            <label>Berlaku Hingga</label>
+                            @Html.TextBoxFor(model => model.KirberlakuHingga, new { @placeholder = "Berlaku Hingga", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal-footer">
+        <div class="form-group col-md-12" style="text-align:right !important;">
+            <button id="btnSubmit" type="submit" class="btn btn-success btn-flat" style="width:20% !important; margin-right:4px;">
+                <i class="fa fa-save"></i> &nbsp; Simpan
+            </button>
+
+            <button type="button" class="btn btn-default btn-flat" style="width:20% !important; margin-left:4px;" onclick="fClose()">
+                <i class="fa fa-close"></i> &nbsp; Tutup
+            </button>
+        </div>
+    </div>
+}
+
+<script>
+
+    $('#mdlInput').on('shown.bs.modal', function () {
+        try {
+            $('#StnkberlakuHingga').datepicker({autoclose: true,format: 'dd MM yyyy'});
+            $('#KirberlakuHingga').datepicker({autoclose: true,format: 'dd MM yyyy'});
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                //fClose();
+            })
+        }
+    });
+
+    $('#frmInput').submit(function (e) {
+        e.preventDefault();
+
+        var form = $(this)[0];
+        var data = new FormData(form);
+
+        $.ajax({
+            url: '@Url.Action("PostAsync", "Vehicle")',
+            data: data,
+            type: "POST",
+            enctype: 'multipart/form-data',
+            processData: false,
+            contentType: false,
+            cache: false,
+            timeout: 600000,
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: "Success...",
+                            text: data["message"],
+                            type: 'success'
+                        }).then(function () {
+                            CloseModalInput('tblVehicleList');
+                        })
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblVehicleList');
+                    })
+                }
+        });
+        return false;
+    });
+
+</script>

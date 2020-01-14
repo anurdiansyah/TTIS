@@ -1,0 +1,196 @@
+﻿@using Nancy.Json
+@using TTIS.WebUi.Common
+@using TTIS.WebUi.Services
+
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@inject ISecurity Security
+
+@{
+    ViewData["Title"] = "Approval";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    List<SelectListItem> lstApprovalModules = new List<SelectListItem>();
+    lstApprovalModules.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+    foreach (SysModuleObject oSysModuleObject in new JavaScriptSerializer().Deserialize<List<SysModuleObject>>(HttpContextAccessor.HttpContext.Session.GetString("ApprovalModules")))
+    {
+        lstApprovalModules.Add(new SelectListItem { Value = oSysModuleObject.ModuleObjectId.ToString(), Text = oSysModuleObject.ObjectName });
+    }
+}
+
+@section AdditionalHeaderScript
+{
+    <link rel="stylesheet" href="@Url.Content("~/Assets/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/Assets/plugins/timepicker/bootstrap-timepicker.min.css")">
+}
+
+<section class="content-header">
+    <h1>
+        <i class="fa fa-Device"></i>&nbsp;@ViewBag.Title
+        <small></small>
+    </h1>
+</section>
+<section class="content">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="box">
+                <div class="box-header">
+                    <h4 class="box-title"> <i class="fa fa-search"></i>&nbsp;  Filter </h4>
+                    <div class="box-tools pull-right">
+                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="box-body">
+
+                    <div class="form-group col-md-12">
+                        <label>Module</label>
+                        @Html.DropDownList("ddlModuleObject", lstApprovalModules, new { @placeholder = "Gender", @class = "form-control" })
+                    </div>
+
+                    <div class="form-group col-md-10">
+                        <label>Keyword</label>
+                        <div class="input-group">
+                            <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                            <input type="text" id="txtKeyword" name="p_sKeyword" class="form-control" placeholder="Keyword..." onkeyup="RefreshDataTable('tblApprovalList')">
+                        </div>
+                    </div>
+
+                    @*<div class="form-group col-md-6">
+            <label>Action</label>
+            <div class="input-group">
+            </div>
+        </div>*@
+
+                    <div class="form-group col-md-2 pull-right">
+                        <label style="width:100%!important">&nbsp;</label>
+                        <a style="width:100%" class="btn btn-success btn-flat" onclick="ResetFilter()"><i class="fa fa-refresh"></i>&nbsp;&nbsp;Reset Filter</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="box">
+                <div class="box-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table id="tblApprovalList"
+                                   style="width:100%"
+                                   class="table table-bordered table-striped dataTable no-footer"
+                                   role="grid"></table>
+                        </div>
+
+                        <script>
+
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section mdlInput{
+    @Html.Partial("~/Views/Approval/_InputForm.cshtml", null)
+    @Html.Partial("~/Views/Approval/_InputScript.cshtml", null)
+}
+
+@section AdditionalFooterScript
+{
+    <script type="text/javascript" src="@Url.Content("~/Assets/bower_components/datatables.net/js/jquery.dataTables.min.js")"></script>
+    <script type="text/javascript" src="@Url.Content("~/Assets/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js")"></script>
+    <script type="text/javascript" src="@Url.Content("~/Assets/plugins/timepicker/bootstrap-timepicker.min.js")"></script>
+
+    <script id="DataTableScript">
+        function ResetFilter() {
+            $("#txtKeyword").val("");
+            RefreshDataTable("tblApprovalList");
+        }
+
+        $(document).ready(function () {
+            $("#mdlInputDialog").width("100%");
+            LoadApprovalList();
+        });
+
+        function LoadApprovalList() {
+             var isSysAdmin = false;
+            $('#tblApprovalList').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("ApprovalListAsync", "Approval")",
+                    "type": "POST",
+                    "data": function (d) {
+                        d.p_sKeyword = $("#txtKeyword").val();
+                    },
+                },
+                "columns": [
+                    {
+                        "title": "Id",
+                        "data": "approvalId",
+                        className: "hidden",
+                    },
+                    {
+                        "title": "Action",
+                        "width": "15%",
+                        "data": "approvalStatusId",
+                        className: "dt-col-center",
+                        render: function (d) {
+                            var sReturn = '';
+                            
+                            if ('@Security.IsHaveAccessRight((int)SecurityEnumeration.ModuleObjectMember.SCR_APPR_VIEW)' == 'True') {
+                                sReturn += "<button onclick = 'fShowDetail(this)' class='btn btn-success btn-sm btn-flat fa fa-eye'></button> ";
+                            }
+                            if (d == '@((int)TtisEnumeration.ApprovalStatus.New)') {
+                                if ('@Security.IsHaveAccessRight((int)SecurityEnumeration.ModuleObjectMember.SCR_APPR_APPROVE)' == 'True') {
+                                    sReturn += "<button onclick = 'fApprove(this)' class='btn btn-default btn-sm btn-flat fa fa-thumbs-up'></button> ";
+                                }
+                                @*if ('@Security.IsHaveAccessRight((int)SecurityEnumeration.ModuleObjectMember.SCR_APPR_DELETE)' == 'True') {
+                                    sReturn += "<button onclick = 'fDelete(this)' class='btn btn-danger btn-sm btn-flat fa fa-close'></button> ";
+                                }*@
+                            }
+                            return sReturn;
+                        },
+                    },
+                    {
+                        "title": "Approval Code",
+                        "width": "15%",
+                        "data": "approvalCode",
+                    },
+                    {
+                        "title": "Object",
+                        "width": "15%",
+                        "data": "reffObj",
+                    },
+                    {
+                        "title": "Object Action",
+                        "width": "15%",
+                        "data": "actionName",
+                    },
+                    {
+                        "title": "Approval Status",
+                        "width": "15%",
+                        "data": "approvalStatusName",
+                    },
+                    {
+                        "title": "Request By",
+                        "data": "requestedBy",
+                    },
+                    {
+                        "title": "Request Date",
+                        "data": "createDate",
+                        render: function (d) {
+                            return moment(d).utcOffset(420).format('DD MMM YYYY - HH:mm:ss');
+                        }
+                    }
+                ],
+                "processing": true,
+                "serverSide": true,
+                "lengthMenu": [[10, 20, 50, 100], [10, 20, 50, 100]],
+                "filter": false,
+                "sort": false,
+                "orderMulti": false
+            });
+        }
+    </script>
+}

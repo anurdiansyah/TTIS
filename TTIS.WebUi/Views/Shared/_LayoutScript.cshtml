@@ -1,0 +1,119 @@
+﻿<script>
+
+    $(document).ready(function () {
+        $(function () {
+            window.FakeLoader.init();
+        });
+
+        GetMnu('');
+    });
+
+    window.FakeLoader.init({
+        auto_hide: true,
+        fade_timeout: 200,
+        overlay_id: 'fakeloader-overlay',
+        wait_for_images: true,
+        wait_for_images_selector: 'body'
+    });
+</script>
+
+<script>
+
+    function GetMnu(p_iId) {
+        try {
+            $.ajax({
+                url: '@Url.Action("MyModuleAsync", "Layout")',
+                type: "GET",
+                data: { p_sUserId: p_iId },
+                success: function (data) {
+                    for (var i in data) {
+                        var module = data[i];
+                        var sArrow = '';
+                        var sSubMenu = '';
+                        var sSubMenuLi = '';
+
+                        if (module.sysModuleObject.length > 0) {
+                            for (var j in module.sysModuleObject) {
+                                var path = window.location.pathname;
+                                var sActiveMnu = path == '/' + module.sysModuleObject[j].defaultUrl ? 'class="active"' : '';
+                                var sShowMnu = path == '/' + module.sysModuleObject[j].defaultUrl ? 'style="display:block;"' : '';
+
+                                var moduleObjects = module.sysModuleObject[j]
+                                sSubMenuLi = sSubMenuLi +
+                                            '<li ' + sActiveMnu + '> ' +
+                                            '   <a href="' + moduleObjects.defaultUrl + '" id="li_' + moduleObjects.objectName + '"> ' +
+                                            '       <i class="fa fa-circle-o"></i><span>' + moduleObjects.objectName + '</span>'
+                                            '   </a> ' +
+                                            '</li> '
+                            }
+
+                            sArrow = '<span class="pull-right-container"><i class="fa fa-angle-left pull-right"></i></span>';
+
+                            var sShowMnu = sSubMenuLi.indexOf('class="active"') != -1 ? 'style="display:block;"' : '';
+                            sSubMenu = '<ul class="treeview-menu" ' + sShowMnu + '> ' + sSubMenuLi + '</ul>'
+                        }
+
+                        var sOpenedMnu = sSubMenu.indexOf('class="active"') != -1 ? 'menu-open' : '';
+
+                        $("#mnuSideBar").append('<li class="treeview ' + sOpenedMnu + '"> ' +
+                                                '    <a href="' + module.defaultUrl + '"> ' +
+                                                '        <i class="' + module.icon + '"></i><span>' + module.moduleName + '</span> ' + sArrow +
+                                                '    </a> ' + sSubMenu +
+                                                '</li>');
+                    }
+
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            })
+        }
+    };
+
+    function OpenModalInput(p_sActionName) {
+        $("#spnActionName").html(p_sActionName);
+
+        $("#mdlInput").modal('show');
+    }
+
+    function CloseModalInput(p_sDataTableName) {
+        if (p_sDataTableName !== undefined || p_sDataTableName !== null) {
+            RefreshDataTable(p_sDataTableName);
+        }
+
+        $("#mdlInput").modal('hide');
+    }
+
+    function fClearInput(pDefaultSelect) {
+        $("#frmInput").find("select, input, textarea").each(function () {
+            if (this.type === "select-one") {
+                $("#" + this.name).val(pDefaultSelect);
+            } else {
+                $("#" + this.name).val("");
+            }
+        });
+    }
+
+    function fLockInput(bState) {
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", bState);
+        });
+    }
+
+    function fFillInputWithJsonData(oJsonData) {
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $("#" + this.name).val(oJsonData[this.name].toString())
+        });
+    }
+</script>

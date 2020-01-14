@@ -1,0 +1,191 @@
+﻿@using TTIS.WebUi.Common
+@using TTIS.WebUi.Services
+
+@inject ISecurity Security
+
+@{
+    ViewData["Title"] = "User Log";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section AdditionalHeaderScript
+{
+    <link rel="stylesheet" href="@Url.Content("~/Assets/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/Assets/plugins/timepicker/bootstrap-timepicker.min.css")">
+}
+
+<section class="content-header">
+    <h1>
+        <i class="fa fa-Device"></i>&nbsp;@ViewBag.Title
+        <small></small>
+    </h1>
+</section>
+<section class="content">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="box">
+                <div class="box-header">
+                    <h4 class="box-title"> <i class="fa fa-search"></i>&nbsp;  Filter </h4>
+                    <div class="box-tools pull-right">
+                        <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="box-body">
+                    <div class="form-group col-md-12">
+                        <label>Keyword</label>
+                        <div class="input-group">
+                            <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                            <input type="text" id="txtKeyword" name="p_sKeyword" class="form-control" placeholder="Keyword..." onkeyup="RefreshDataTable('tblSysUserLogList')">
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-2 pull-right">
+                        <a style="width:100%" class="btn btn-success btn-flat" onclick="ResetFilter()"><i class="fa fa-refresh"></i>&nbsp;&nbsp;Reset Filter</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (@Security.IsHaveAccessRight((int)SecurityEnumeration.ModuleObjectMember.ATRL_USR_LOG_PURGE))
+    {
+        <div class="row" style="margin-bottom:10px !important;">
+            <div class="col-md-2">
+                <a class="btn btn-block btn-danger btn-flat" onclick="fPurge()" data-toggle="modal"><i class="fa fa-bomb"></i>&nbsp;&nbsp;Purge Log</a>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="box">
+                <div class="box-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table id="tblSysUserLogList"
+                                   style="width:100%"
+                                   class="table table-bordered table-striped dataTable no-footer"
+                                   role="grid"></table>
+                        </div>
+
+                        <script>
+
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section mdlInput{
+    @Html.Partial("~/Views/SysUserLog/_InputForm.cshtml", null)
+    @Html.Partial("~/Views/SysUserLog/_InputScript.cshtml", null)
+}
+
+@section AdditionalFooterScript
+{
+    <script type="text/javascript" src="@Url.Content("~/Assets/bower_components/datatables.net/js/jquery.dataTables.min.js")"></script>
+    <script type="text/javascript" src="@Url.Content("~/Assets/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js")"></script>
+    <script type="text/javascript" src="@Url.Content("~/Assets/plugins/timepicker/bootstrap-timepicker.min.js")"></script>
+
+    <script id="DataTableScript">
+        function ResetFilter() {
+            $("#txtKeyword").val("");
+            RefreshDataTable("tblSysUserLogList");
+        }
+
+        $(document).ready(function () {
+            $("#mdlInputDialog").width("100%");
+            LoadSysUserLogList();
+        });
+
+        function LoadSysUserLogList() {
+             var isNoDetail = false;
+            $('#tblSysUserLogList').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("SysUserLogListAsync", "SysUserLog")",
+                    "type": "POST",
+                    "data": function (d) {
+                        d.p_sKeyword = $("#txtKeyword").val();
+                    },
+                },
+                "columns": [
+                    {
+                        "title": "Id",
+                        "data": "userLogId",
+                        className: "hidden",
+                    },
+                    {
+                        "title": "detail",
+                        "data": "detail",
+                        className: "hidden",
+                        render: function (d) {
+                            isNoDetail = (d === '');
+                            return d;
+                        },
+                    },
+                    {
+                        "title": "prevDetail",
+                        "data": "previousDetail",
+                        className: "hidden",
+                        render: function (d) {
+                            isNoDetail = (d === '');
+                            return d;
+                        },
+                    },
+                    {
+                        "title": "Action",
+                        "width": "5%",
+                        className: "dt-col-center",
+                        render: function (d) {
+                            if (isNoDetail) {
+                                return "<b>- No Detail </b>-";
+                            }
+                            return "<button onclick = 'fShowDetail(this)' class='btn btn-success btn-sm btn-flat fa fa-eye'></button> ";
+                        },
+                    },
+                    {
+                        "title": "Reference Number",
+                        "data": "referenceNumber",
+                        "width": "10%",
+                    },
+                    {
+                        "title": "Date",
+                        "data": "logDate",
+                        "width": "15%",
+                        render: function (d) {
+                            d = moment(d).format("dddd, DD MMM YYYY");
+                            return d;
+                        },
+                    },
+                    {
+                        "title": "Time",
+                        "data": "logDate",
+                        "width": "5%",
+                        render: function (d) {
+                            d = moment(d).format("HH:mm:ss");
+                            return d;
+                        },
+                    },
+                    {
+                        "title": "Object",
+                        "data": "objectName",
+                        "width": "5%",
+                    },
+                    {
+                        "title": "Action",
+                        "data": "memberName",
+                        "width": "5%",
+                    }
+                ],
+                "processing": true,
+                "serverSide": true,
+                "lengthMenu": [[10, 20, 50, 100], [10, 20, 50, 100]],
+                "filter": false,
+                "sort": false,
+                "orderMulti": false
+            });
+        }
+    </script>
+}

@@ -1,0 +1,18 @@
+﻿1>------ Build started: Project: TTIS.API, Configuration: Debug Any CPU ------
+1>Controllers\DepartmentController.cs(287,18,287,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\EmployeeStatusController.cs(81,18,81,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\DriverAssistantController.cs(331,18,331,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\SysUserLogController.cs(198,18,198,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\VehicleUserController.cs(362,18,362,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\SysParamController.cs(213,18,213,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\DriverController.cs(348,18,348,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\TitleController.cs(286,18,286,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\CustomerController.cs(312,18,312,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\UnitController.cs(287,18,287,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\RoleAccessController.cs(455,18,455,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\EmployeeController.cs(556,18,556,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\VehicleController.cs(364,18,364,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>Controllers\ApprovalController.cs(352,18,352,26): warning CS0219: The variable 'bIsExist' is assigned but its value is never used
+1>TTIS.API -> D:\_Project\Timur Terang System\.Net Project\TTIS\TTIS.API\bin\Debug\netcoreapp2.1\TTIS.API.dll
+1>Done building project "TTIS.API.csproj".
+========== Build: 1 succeeded, 0 failed, 1 up-to-date, 0 skipped ==========

@@ -1,0 +1,261 @@
+﻿@using Nancy.Json
+@using Microsoft.Extensions.Options;
+@using TTIS.WebUi.Configuration;
+@inject IOptions<TtsiApi> ttsiApi
+
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@model MasDriver
+@{
+    ViewBag.Title = "Driver";
+}
+<style type="text/css">
+    .image-preview-input {
+        position: relative;
+        overflow: hidden;
+        margin: 0px;
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+    }
+
+        .image-preview-input input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+
+    .image-preview-input-title {
+        margin-left: 2px;
+    }
+</style>
+
+@using (Html.BeginForm("PostAsync", "Driver", FormMethod.Post, new { id = "frmInput", enctype = "multipart/form-data", autocomplete = "off" }))
+{
+    <div class="modal-header">
+        <h3>
+            <i class="fa fa-user"></i>&nbsp;&nbsp;<span id="spnActionName"></span> @ViewBag.Title
+        </h3>
+    </div>
+
+    <div class="modal-body" style="max-height: calc(100vh - 240px) !important; overflow-y: auto !important;">
+        @Html.HiddenFor(model => model.DriverId)
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="row">
+                    <div class="form-group col-md-9">
+                        <label>Tag Number</label>
+                        @Html.TextBoxFor(model => model.TagNumber, new { @placeholder = "Employee Tag Number", @class = "form-control", @required = "true" })
+                        @Html.HiddenFor(model => model.EmployeeId, new { @class = "form-control" })
+                    </div>
+
+                    <div class="form-group col-md-3">
+                        <label style="width:100%">&nbsp; </label>
+                        <button id="btnValidate" type="button" class="btn btn-primary btn-flat" onclick="ValidateEmployee()" style="width:100% !important;">
+                            <i class="fa fa-plus"></i> &nbsp; Validate
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="form-group col-md-4">
+                        <label>Informasi Karyawan</label>
+                        <img class="profile-user-img img-responsive" id="imgEmployee" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_photo.png")" alt="Employee Photo">
+                    </div>
+
+                    <div class="form-group col-md-8 no-padding">
+                        <label style="width:100%">&nbsp; </label>
+                        @Html.TextArea("EmployeeDetail", new { @class = "form-control", @style = "font-weight:bold", @readonly = "true", @rows = "13" })
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h3>Driver License Info</h3>
+                    </div>
+                    <div class="box-body">
+                        <div class="form-group col-md-6">
+                            <label>
+                                License Image
+                            </label>
+                            <img class="profile-user-img img-responsive" id="imgDriver" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Driver License">
+
+                            <!-- image-preview-filename input [CUT FROM HERE]-->
+                            <div id="usrImagePreview" class="input-group image-preview">
+                                @Html.TextBoxFor(model => model.LicensePicture, new { @class = "form-control image-preview-filename", @readonly = "true", @required = true })
+
+                                <span class="input-group-btn">
+                                    <!-- image-preview-clear button -->
+                                    <button id="btnClearDriverLicense" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                        <span class="glyphicon glyphicon-remove"></span> Clear
+                                    </button>
+                                    <!-- image-preview-input -->
+                                    <div class="btn btn-default btn-flat image-preview-input">
+                                        <span class="glyphicon glyphicon-folder-open"></span>
+                                        <span id="btnBrowseDriverTitle" class="image-preview-input-title">Browse</span>
+                                        <input id="fileDriverLicense" type="file" accept="image/jpeg" name="fileDriverLicense" />
+                                    </div>
+                                </span>
+
+                                <script>
+                            $(function () {
+                                // Create the close button
+                                var closebtn = $('<button/>', {
+                                    type: "button",
+                                    text: 'x',
+                                    id: 'close-preview-Driver-image',
+                                    style: 'font-size: initial;',
+                                });
+                                closebtn.attr("class", "close pull-right");
+
+                                // Set the popover default content
+                                $('#usrImagePreview').popover({
+                                    trigger: 'manual',
+                                    html: true,
+                                    title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                                    content: "There's no image",
+                                    placement: 'bottom'
+                                });
+
+                                // Clear event
+                                $('#btnClearDriverLicense').click(function () {
+                                    var img = $('#imgDriver');
+
+                                    img.attr('src', '@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")');
+                                    $('#LicensePicture').val("");
+                                    $('#btnClearDriverLicense').hide();
+                                    $('#fileDriverLicense').val("");
+                                    $('#btnBrowseDriverTitle').text("Browse");
+
+                                });
+
+                                // Create the preview image
+                                $("#fileDriverLicense").change(function () {
+                                    var img = $('#imgDriver');
+                                    var file = this.files[0];
+                                    var reader = new FileReader();
+                                    // Set preview image into the popover data-content
+                                    reader.onload = function (e) {
+                                        $('#btnBrowseDriverTitle').text("Change");
+                                        $("#btnClearDriverLicense").show();
+                                        $("#LicensePicture").val(file.name);
+                                        img.attr('src', e.target.result);
+                                    }
+                                    reader.readAsDataURL(file);
+                                });
+                            });
+                                </script>
+
+                            </div>
+                            <!-- /input-group image-preview [TO HERE]-->
+                        </div>
+                        <div class="form-group col-md-6">
+                            <div class="col-md-12 form-group">
+                                <label>License Type</label>
+                                @Html.TextBoxFor(model => model.LicenseType, new { @placeholder = "Type", @class = "form-control", @readonly = "true", @required = true })
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <label>License Number</label>
+                                @Html.TextBoxFor(model => model.LicenseNumber, new { @placeholder = "Number", @class = "form-control", @readonly = "true", @required = true })
+                            </div>
+                            <div class="col-md-12 form-group">
+                                <label>License Expiry Date</label>
+                                @Html.TextBoxFor(model => model.LicenseExpiryDate, new { @placeholder = "Expiry Date", @class = "form-control", @readonly = "true", @required = true })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal-footer">
+        <div class="form-group col-md-12" style="text-align:right !important;">
+            <button id="btnSubmit" type="submit" class="btn btn-success btn-flat" style="width:20% !important; margin-right:4px;">
+                <i class="fa fa-save"></i> &nbsp; Simpan
+            </button>
+
+            <button type="button" class="btn btn-default btn-flat" style="width:20% !important; margin-left:4px;" onclick="fClose()">
+                <i class="fa fa-close"></i> &nbsp; Tutup
+            </button>
+        </div>
+    </div>
+}
+
+<script>
+
+    $('#mdlInput').on('shown.bs.modal', function () {
+        try {
+            $('#LicenseExpiryDate').datepicker({
+                autoclose: true,
+                format: 'dd MM yyyy'
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'success'
+            }).then(function () {
+                fClose();
+            })
+        }
+    });
+
+    $('#frmInput').submit(function (e) {
+        e.preventDefault();
+
+        var form = $(this)[0];
+        var data = new FormData(form);
+
+        $.ajax({
+        url: '@Url.Action("PostAsync", "Driver")',
+        data: data,
+        type: "POST",
+        enctype: 'multipart/form-data',
+        processData: false,
+        contentType: false,
+        cache: false,
+        timeout: 600000,
+            success: function (data) {
+                if (data["isSuccess"]) {
+                    swal({
+                        title: "Success...",
+                        text: data["message"],
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblDriverList');
+                    })
+                } else {
+                    swal({
+                        title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                        text: "Please safe the Reference Number and call your System Administrator.",
+                        type: 'warning'
+                    })
+                }
+            },
+            error: function (xhr, status, error) {
+                swal({
+                    title: window.location.href,
+                    text: "( Error " + xhr.status + " ) - " + error,
+                    type: 'warning'
+                }).then(function () {
+                    CloseModalInput('tblDriverList');
+                })
+            }
+        });
+        return false;
+    });
+
+</script>

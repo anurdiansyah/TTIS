@@ -1,0 +1,332 @@
+﻿<script id="InputScript">
+    var ChkCollection = document.querySelectorAll('input[type=checkbox]');
+
+    function fAdd() {
+        $("#dvRoleInfo").find("select, input, textarea").each(function () {
+            $(this).val("");
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+
+        $("#dvRoleAccess").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+
+        for (var i = 0; i < ChkCollection.length; i++) {
+            ChkCollection[i].checked = false;
+            var dv = document.getElementById("dv_" + ChkCollection[i].value);
+            if (ChkCollection[i].parentNode.id != "") {
+                ChkCollection[i].parentNode.className = "btn btn-danger btn-flat";
+            }
+        }
+        $("#btnSubmit").show();
+
+        OpenModalInput('Add New')
+    }
+
+    function fEdit(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+        $("#btnSubmit").show();
+        $("#PhotoId").attr("readonly", true);
+
+        Get(iId, "Edit");
+    }
+
+    function fShowDetail(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", true);
+            $(this).attr("disabled", true);
+        });
+
+        $("#btnSubmit").hide();
+        var column = $("#tblRoleAccessGroup").DataTable().column(1);
+        column.visible(false);
+
+        Get(iId, "Detail");
+    }
+
+    function fDelete(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        swal({
+            title: "Anda yakin?",
+            text: "Anda tidak akan dapat membatalkan tindakan ini!",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: 'Lanjutkan',
+            cancelButtonText: "Batalkan",
+        }).then(result =>
+        {
+            if (result.value) {
+                Delete(iId);
+            }
+        });
+    }
+
+    function Get(p_iId, p_sActionName) {
+        try {
+            $.ajax({
+                url: '@Url.Action("GetRoleAccessAsync", "RoleAccess")',
+                type: "POST",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        obj = jQuery.parseJSON(data["jsonData"]);
+                        $("#frmInput").find("select, input, textarea").each(function () {
+                            if (this.name.toLowerCase().indexOf('date') > -1) {
+                                var date = new Date(obj[this.name]);
+                                $("#" + this.name).val(moment(date).format("DD MMMM YYYY"))
+                            } else {
+                                $("#" + this.name).val(obj[this.name])
+                            }
+                        });
+
+                        for (var i = 0; i < ChkCollection.length; i++) {
+                            ChkCollection[i].checked = false;
+                            var dv = document.getElementById("dv_" + ChkCollection[i].value);
+                            if (ChkCollection[i].parentNode.id != "") {
+                                ChkCollection[i].parentNode.className = "btn btn-danger btn-flat";
+                            }
+                        }
+
+                        var obj = obj["SysModules"];
+                        jQuery.each(obj, function (i, module) {
+                            jQuery.each(module.SysModuleObject, function (j, moduleObject) {
+                                jQuery.each(moduleObject.SysModuleObjectMember, function (k, moduleObjectMember) {
+                                    var dvId = "dv_" + module.ModuleId + "*" + moduleObject.ModuleObjectId + "*" + moduleObjectMember.ModuleObjectMemberId + "*0*" + moduleObjectMember.MemberName;
+                                    var dv = document.getElementById(dvId);
+                                    var chkMember = $("#chkMember_" + moduleObjectMember.ModuleObjectMemberId);
+
+                                    dv.className = "btn btn-success btn-flat";
+                                    chkMember.prop("checked",true);
+                                });
+                            });
+                            IsAllObjectSelected(module.moduleId)
+                        });
+
+                        OpenModalInput(p_sActionName)
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblRoleAccessList');
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblRoleAccessList');
+            })
+        }
+    };
+
+    function Delete(p_iId){
+        try {
+            $.ajax({
+                url: '@Url.Action("DeleteAsync", "RoleAccess")',
+                type: "DELETE",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: 'Success!',
+                            text: data["message"],
+                            type: 'success'
+                        }).then
+                            (function () {
+                                RefreshDataTable('tblRoleAccessList');
+                            });
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblRoleAccessList');
+            })
+        }
+    };
+
+    function fClose() {
+        CloseModalInput();
+    }
+
+</script>
+
+<script type="text/javascript" id="ModuleObjectMemberScript">
+
+    function CheckObjectAccess() {
+        for (var i = 0; i < ChkCollection.length; i++) {
+            var chkAllMemberByObject = document.getElementsByName("chkAllMemberByObject" + GetModuleObjectID(ChkCollection[i].value))[0];
+            if (ChkCollection[i].name.indexOf('AllMemberByObject') > 0) {
+                if (chkAllMemberByObject != null) {
+                    chkAllMemberByObject.checked = IsAllMemberOfObjectSelected(GetModuleObjectID(ChkCollection[i].value));
+                }
+            }
+        }
+
+        for (var i = 0; i < ChkCollection.length; i++) {
+            var chkAllMemberByModule = document.getElementsByName("chkAllMemberByModule" + GetModuleID(ChkCollection[i].value))[0];
+            if (ChkCollection[i].name.indexOf('AllMemberByModule') > 0) {
+                if (chkAllMemberByModule != null) {
+                    chkAllMemberByModule.checked = IsAllObjectSelected(GetModuleID(ChkCollection[i].value));
+                }
+            }
+        }
+    }
+
+    function chkAllMemberByModule_Change(chkAllMemberByModule) {
+        for (var i = 0; i < ChkCollection.length; i++) {
+            if (GetModuleID(ChkCollection[i].value) == GetModuleID(chkAllMemberByModule.value)) {
+                ChkCollection[i].checked = chkAllMemberByModule.checked;
+
+                var dv = document.getElementById("dv_" + ChkCollection[i].value);
+                if (chkAllMemberByModule.checked) {
+                    if (dv != null) {
+                        dv.className = "btn btn-success btn-flat";
+                    }
+                } else {
+                    if (dv != null) {
+                        dv.className = "btn btn-danger btn-flat";
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    function chkAllMemberByObject_Change(chkAllMemberByObject) {
+        for (var i = 0; i < ChkCollection.length; i++) {
+            if (GetModuleObjectID(ChkCollection[i].value) == GetModuleObjectID(chkAllMemberByObject.value)) {
+                ChkCollection[i].checked = chkAllMemberByObject.checked;
+
+                var dv = document.getElementById("dv_" + ChkCollection[i].value);
+                if (chkAllMemberByObject.checked) {
+                    if (dv != null) {
+                        dv.className = "btn btn-success btn-flat";
+                    }
+                } else {
+                    if (dv != null) {
+                        dv.className = "btn btn-danger btn-flat";
+                    }
+                }
+            }
+        }
+
+        document.getElementsByName("chkAllMemberByModule" + GetModuleID(chkAllMemberByObject.value))[0].checked = IsAllObjectSelected(GetModuleID(chkAllMemberByObject.value));
+        return true;
+    }
+
+    function chkMember_Change(chkMember) {
+        document.getElementsByName("chkAllMemberByObject" + GetModuleObjectID(chkMember.value))[0].checked = IsAllMemberOfObjectSelected(GetModuleObjectID(chkMember.value));
+        document.getElementsByName("chkAllMemberByModule" + GetModuleID(chkMember.value))[0].checked = IsAllObjectSelected(GetModuleID(chkMember.value));
+
+        var dv = document.getElementById("dv_" + chkMember.value);
+
+        if (chkMember.checked) {
+            if (dv != null) {
+                dv.className = "btn btn-success btn-flat";
+            }
+        } else {
+            if (dv != null) {
+                dv.className = "btn btn-danger btn-flat";
+            }
+        }
+        return true;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------------------------------------//
+
+    function GetModuleID(sMemberValue) {
+        var arrMemberValue = sMemberValue.split("*");
+        if (arrMemberValue.length > 0)
+            return arrMemberValue[0];
+        else
+            return 0;
+    }
+
+    function GetModuleObjectID(sMemberValue) {
+        var arrMemberValue = sMemberValue.split("*");
+        if (arrMemberValue.length > 0)
+            return arrMemberValue[1];
+        else
+            return 0;
+    }
+
+    function IsAllObjectSelected(iModuleID) {
+        var bAllSelected = true;
+        for (var i = 0; i < ChkCollection.length; i++) {
+            if (ChkCollection[i].name.indexOf('AllMemberByObject') > 0) {
+                if (GetModuleID(ChkCollection[i].value) == iModuleID) {
+                    if (ChkCollection[i].checked == false) {
+                        bAllSelected = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return bAllSelected;
+    }
+
+    function IsAllMemberOfObjectSelected(iObjectID) {
+        var bAllMemberSelected = true;
+        for (var i = 0; i < ChkCollection.length; i++) {
+            if (ChkCollection[i].name.indexOf('AllMemberByObject') < 0) {
+                if (GetModuleObjectID(ChkCollection[i].value) == iObjectID) {
+                    if (ChkCollection[i].checked == false) {
+                        bAllMemberSelected = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return bAllMemberSelected;
+    }
+
+</script>

@@ -1,0 +1,492 @@
+﻿@using TTIS.WebUi.Services;
+@using Microsoft.Extensions.Options;
+@using TTIS.WebUi.Configuration;
+
+@inject IOptions<TtsiApi> ttsiApi
+@inject IAppUser appUser
+
+@model EmployeeDetail
+@{
+    ViewData["Title"] = "My Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    AspNetUsers currentUser = await appUser.CurrentUser();
+
+    string sFotoLink = ttsiApi.Value.ApiUrl + "/images/employee?id=" + Model.PasPhoto;
+    string sIdentityLink = ttsiApi.Value.ApiUrl + "/images/employee?id=" + Model.IdentityPicture;
+
+    List<SelectListItem> lstGender = new List<SelectListItem>();
+    lstGender.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+    lstGender.Add(new SelectListItem { Value = "F", Text = "Perempuan" });
+    lstGender.Add(new SelectListItem { Value = "M", Text = "Laki - Laki" });
+}
+
+@section AdditionalHeaderScript
+{
+    <link rel="stylesheet" href="@Url.Content("~/Assets/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/Assets/plugins/timepicker/bootstrap-timepicker.min.css")">
+}
+
+<style type="text/css">
+    .image-preview-input {
+        position: relative;
+        overflow: hidden;
+        margin: 0px;
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+    }
+
+        .image-preview-input input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+
+    .image-preview-input-title {
+        margin-left: 2px;
+    }
+</style>
+
+<section class="content-header">
+    <h1>
+        <i class="fa fa-Device"></i>&nbsp;@ViewBag.Title
+        <small></small>
+    </h1>
+</section>
+
+<section class="content">
+
+    @using (Html.BeginForm("PostAsync", "Employee", FormMethod.Post, new { id = "frmProfile", enctype = "multipart/form-data", autocomplete = "off" }))
+    {
+        <div class="row">
+            <div class="col-md-3">
+                <div class="box box-primary">
+                    <div class="box-body box-profile">
+                        <img class="profile-user-img img-responsive img-circle" src="@sFotoLink" alt="User profile picture">
+                        <h3 class="profile-username text-center">@(string.IsNullOrEmpty(Model.NickName) ? currentUser.UserName : Model.NickName)</h3>
+                        <p class="text-muted text-center">@(string.IsNullOrEmpty(Model.NickName) ? "- No Title -" : Model.TitleName)</p>
+
+                        <ul class="list-group list-group-unbordered">
+                            <li class="list-group-item">
+                                <b>E-Mail</b> <a class="pull-right">@currentUser.Email</a>
+                            </li>
+                            <li class="list-group-item">
+                                <b>Phone Number</b> <a class="pull-right">@(string.IsNullOrEmpty(@currentUser.PhoneNumber) ? " - No Phone Number - " : @currentUser.PhoneNumber)</a>
+                            </li>
+                        </ul>
+
+                        <a onclick="fOpen()" class="btn btn-primary btn-block btn-flat"><b>Change Password</b></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <div class="nav-tabs-custom">
+                    <ul class="nav nav-tabs">
+                        <li class="active"><a href="#employeeProfile" data-toggle="tab">Employee Profile</a></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="active tab-pane" id="employeeProfile">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="row">
+                                        @Html.HiddenFor(model => model.EmployeeId)
+                                        @Html.HiddenFor(model => model.EmployeeStatusId)
+                                        @Html.HiddenFor(model => model.JoinDate)
+                                        @Html.HiddenFor(model => model.DepartmentId)
+                                        @Html.HiddenFor(model => model.UnitId)
+                                        @Html.HiddenFor(model => model.TitleId)
+                                        @Html.HiddenFor(model => model.CreateDate)
+                                        @Html.HiddenFor(model => model.CreateByUserId)
+
+                                        <div class="col-md-3 no-padding">
+                                            <div class="form-group col-md-12">
+                                                <label>
+                                                    Pas Photo
+                                                </label>
+                                                <img class="profile-user-img img-responsive" id="imgEmployee" style="width:100% !important; margin-bottom:10px !important" src="@sFotoLink" alt="Employee Photo">
+
+                                                <!-- image-preview-filename input [CUT FROM HERE]-->
+                                                <div id="usrImagePreview" class="input-group image-preview">
+                                                    @Html.TextBoxFor(model => model.PasPhoto, new { @class = "form-control image-preview-filename", @readonly = "true" })
+
+                                                    <span class="input-group-btn">
+                                                        <!-- image-preview-clear button -->
+                                                        <button id="btnClearEmployeePhoto" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                                            <span class="glyphicon glyphicon-remove"></span> Clear
+                                                        </button>
+                                                        <!-- image-preview-input -->
+                                                        <div class="btn btn-default btn-flat image-preview-input">
+                                                            <span class="glyphicon glyphicon-folder-open"></span>
+                                                            <span id="btnBrowseEmployeeTitle" class="image-preview-input-title">Browse</span>
+                                                            <input id="fileEmployeePhoto" type="file" accept="image/jpeg" name="fileEmployeePhoto" />
+                                                        </div>
+                                                    </span>
+                                                </div>
+                                                <!-- /input-group image-preview [TO HERE]-->
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-9">
+                                            <div class="form-group col-md-4">
+                                                <label>
+                                                    Tag Number
+                                                </label>
+                                                @Html.TextBoxFor(model => model.TagNumber, new { @placeholder = "Tag Number", @class = "form-control", @required = "true", @readonly = true })
+                                            </div>
+                                            <div class="form-group col-md-8">
+                                                <label>
+                                                    Nama Panggilan
+                                                </label>
+                                                @Html.TextBoxFor(model => model.NickName, new { @placeholder = "Nama Panggilan", @class = "form-control", @required = "true", })
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label>
+                                                    Nama Depan
+                                                </label>
+                                                @Html.TextBoxFor(model => model.FirstName, new { @placeholder = "Nama Depan", @class = "form-control", @required = "true", })
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label>
+                                                    Nama Tengah
+                                                </label>
+                                                @Html.TextBoxFor(model => model.MiddleName, new { @placeholder = "Nama Tengah", @class = "form-control", @required = "true", })
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label>
+                                                    Nama Belakang
+                                                </label>
+                                                @Html.TextBoxFor(model => model.LastName, new { @placeholder = "Nama Belakang", @class = "form-control", @required = "true", })
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label>
+                                                    Tempat Lahir
+                                                </label>
+                                                @Html.TextBoxFor(model => model.PlaceOfBirth, new { @placeholder = "Tempat Lahir", @class = "form-control", @required = "true", })
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label>
+                                                    Tanggal Lahir
+                                                </label>
+                                                @Html.TextBoxFor(model => model.DateOfBirth, "{0:d MMM yyyy}", new { @placeholder = "Tanggal Lahir", @class = "form-control", @required = "true", })
+                                            </div>
+                                            <div class="form-group col-md-4">
+                                                <label>
+                                                    Gender
+                                                </label>
+                                                @Html.DropDownListFor(model => model.Gender, lstGender, new { @placeholder = "Gender", @class = "form-control", @required = "true", })
+                                            </div>
+                                            <div class="form-group col-md-6">
+                                                <label>
+                                                    Email
+                                                </label>
+                                                @Html.TextBoxFor(model => model.Email, new { @placeholder = "E-mail", @class = "form-control", @required = "true", })
+                                            </div>
+                                            <div class="form-group col-md-6">
+                                                <label>
+                                                    Phone Number
+                                                </label>
+                                                @Html.TextBoxFor(model => model.PhoneNumber, new { @placeholder = "Phone Number", @class = "form-control", @required = "true", })
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-7">
+                                            <div class="box box-primary">
+                                                <div class="box-header">
+                                                    <label>Alamat KTP</label>
+                                                </div>
+                                                <div class="box-body no-padding">
+                                                    <div class="col-md-5 no-padding">
+                                                        <div class="form-group col-md-12">
+                                                            <label>
+                                                                Identity Photo
+                                                            </label>
+                                                            <img class="profile-user-img img-responsive" id="imgIdentity" style="width:100% !important; margin-bottom:10px !important" src="@sIdentityLink" alt="Identity Photo">
+
+                                                            <!-- image-preview-filename input [CUT FROM HERE]-->
+                                                            <div id="usrImagePreview" class="input-group image-preview">
+                                                                @Html.TextBoxFor(model => model.IdentityPicture, new { @class = "form-control image-preview-filename", @readonly = "true" })
+
+                                                                <span class="input-group-btn">
+                                                                    <!-- image-preview-clear button -->
+                                                                    <button id="btnClearIdentityPhoto" type="button" class="btn btn-default btn-flat image-preview-clear" style="display:none;">
+                                                                        <span class="glyphicon glyphicon-remove"></span> Clear
+                                                                    </button>
+                                                                    <!-- image-preview-input -->
+                                                                    <div class="btn btn-default btn-flat image-preview-input">
+                                                                        <span class="glyphicon glyphicon-folder-open"></span>
+                                                                        <span id="btnBrowseIdentityTitle" class="image-preview-input-title">Browse</span>
+                                                                        <input id="fileIdentityPhoto" type="file" accept="image/jpeg" name="fileIdentityPhoto" />
+                                                                    </div>
+                                                                </span>
+
+                                                            </div>
+                                                            <!-- /input-group image-preview [TO HERE]-->
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-md-7">
+                                                        <div class="form-group col-md-12">
+                                                            <label>
+                                                                Nomor KTP
+                                                            </label>
+                                                            @Html.TextBoxFor(model => model.IdentityNumber, new { @placeholder = "Nomor KTP", @class = "form-control", @required = "true", })
+                                                        </div>
+                                                        <div class="form-group col-md-12">
+                                                            <label>
+                                                                Alamat
+                                                            </label>
+                                                            @Html.TextAreaFor(model => model.IdentityAddress, new { @placeholder = "Alamat", @class = "form-control", @required = "true" })
+                                                        </div>
+                                                        <div class="form-group col-md-6">
+                                                            <label>
+                                                                Kelurahan / Desa
+                                                            </label>
+                                                            @Html.TextBoxFor(model => model.IdentitySubDistrict, new { @placeholder = "Kelurahan / Desa", @class = "form-control", @required = "true", })
+                                                        </div>
+                                                        <div class="form-group col-md-6">
+                                                            <label>
+                                                                Kecamatan
+                                                            </label>
+                                                            @Html.TextBoxFor(model => model.IdentityDistrict, new { @placeholder = "Kecamatan", @class = "form-control", @required = "true", })
+                                                        </div>
+                                                        <div class="form-group col-md-6">
+                                                            <label>
+                                                                Kota
+                                                            </label>
+                                                            @Html.TextBoxFor(model => model.IdentityCity, new { @placeholder = "Kota", @class = "form-control", @required = "true", })
+                                                        </div>
+                                                        <div class="form-group col-md-6">
+                                                            <label>
+                                                                Provinsi
+                                                            </label>
+                                                            @Html.TextBoxFor(model => model.IdentityProvince, new { @placeholder = "Provinsi", @class = "form-control", @required = "true", })
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-5">
+                                            <div class="box box-primary">
+                                                <div class="box-header">
+                                                    <label>Alamat Tinggal</label>
+                                                </div>
+                                                <div class="box-body no-padding">
+                                                    <div class="form-group col-md-12">
+                                                        <div class="form-group col-md-12">
+                                                            <label>
+                                                                Alamat
+                                                            </label>
+                                                            @Html.TextAreaFor(model => model.LivingAddress, new { @placeholder = "Alamat", @class = "form-control", @required = "true" })
+                                                        </div>
+                                                        <div class="form-group col-md-6">
+                                                            <label>
+                                                                Kelurahan / Desa
+                                                            </label>
+                                                            @Html.TextBoxFor(model => model.LivingSubDistrict, new { @placeholder = "Kelurahan / Desa", @class = "form-control", @required = "true", })
+                                                        </div>
+                                                        <div class="form-group col-md-6">
+                                                            <label>
+                                                                Kecamatan
+                                                            </label>
+                                                            @Html.TextBoxFor(model => model.LivingDistrict, new { @placeholder = "Kecamatan", @class = "form-control", @required = "true", })
+                                                        </div>
+                                                        <div class="form-group col-md-6">
+                                                            <label>
+                                                                Kota
+                                                            </label>
+                                                            @Html.TextBoxFor(model => model.LivingCity, new { @placeholder = "Kota", @class = "form-control", @required = "true", })
+                                                        </div>
+                                                        <div class="form-group col-md-6">
+                                                            <label>
+                                                                Provinsi
+                                                            </label>
+                                                            @Html.TextBoxFor(model => model.LivingProvince, new { @placeholder = "Provinsi", @class = "form-control", @required = "true", })
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <button id="btnSubmit" type="submit" class="btn btn-success btn-flat pull-right" style="width:20% !important; margin-right:4px;">
+                                                <i class="fa fa-save"></i> &nbsp; Update Profile
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+@section mdlInput{
+    @Html.Partial("~/Views/Profile/_ChangePassword.cshtml", null)
+    @Html.Partial("~/Views/Profile/_ChangePasswordScript.cshtml", null)
+}
+
+@section AdditionalFooterScript
+{
+    <script type="text/javascript" src="@Url.Content("~/Assets/bower_components/datatables.net/js/jquery.dataTables.min.js")"></script>
+    <script type="text/javascript" src="@Url.Content("~/Assets/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js")"></script>
+    <script type="text/javascript" src="@Url.Content("~/Assets/plugins/timepicker/bootstrap-timepicker.min.js")"></script>
+
+    <script>
+        $('#frmProfile').submit(function (e) {
+            e.preventDefault();
+
+            var form = $(this)[0];
+            var data = new FormData(form);
+
+            $.ajax({
+            url: '@Url.Action("UpdateProfile", "Profile")',
+            data: data,
+            type: "POST",
+            enctype: 'multipart/form-data',
+            processData: false,
+            contentType: false,
+            cache: false,
+            timeout: 600000,
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: "Success...",
+                            text: data["message"],
+                            type: 'success'
+                        }).then(function () {
+                            $(location).attr('href', '@Url.Action("Index","Dashboard")')
+                        })
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                    })
+                }
+            });
+            return false;
+        });
+    </script>
+
+    <script id="IdentityPhoto">
+        $(function () {
+            // Create the close button
+            var closebtn = $('<button/>', {
+                type: "button",
+                text: 'x',
+                id: 'close-preview-Identity-image',
+                style: 'font-size: initial;',
+            });
+            closebtn.attr("class", "close pull-right");
+
+            // Set the popover default content
+            $('#usrImagePreview').popover({
+                trigger: 'manual',
+                html: true,
+                title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                content: "There's no image",
+                placement: 'bottom'
+            });
+
+            // Clear event
+            $('#btnClearIdentityPhoto').click(function () {
+                var img = $('#imgIdentity');
+
+                img.attr('src', '@sIdentityLink');
+                $('#IdentityPicture').val("");
+                $('#btnClearIdentityPhoto').hide();
+                $('#fileIdentityPhoto').val("");
+                $('#btnBrowseIdentityTitle').text("Browse");
+
+            });
+
+            // Create the preview image
+            $("#fileIdentityPhoto").change(function () {
+                var img = $('#imgIdentity');
+                var file = this.files[0];
+                var reader = new FileReader();
+                // Set preview image into the popover data-content
+                reader.onload = function (e) {
+                    $('#btnBrowseIdentityTitle').text("Change");
+                    $("#btnClearIdentityPhoto").show();
+                    $("#IdentityPicture").val(file.name);
+                    img.attr('src', e.target.result);
+                }
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+
+    <script id="EmployeePhoto">
+        $(function () {
+            // Create the close button
+            var closebtn = $('<button/>', {
+                type: "button",
+                text: 'x',
+                id: 'close-preview-Employee-image',
+                style: 'font-size: initial;',
+            });
+            closebtn.attr("class", "close pull-right");
+
+            // Set the popover default content
+            $('#usrImagePreview').popover({
+                trigger: 'manual',
+                html: true,
+                title: "<strong>Preview</strong>" + $(closebtn)[0].outerHTML,
+                content: "There's no image",
+                placement: 'bottom'
+            });
+
+            // Clear event
+            $('#btnClearEmployeePhoto').click(function () {
+                var img = $('#imgEmployee');
+
+                img.attr('src', '@Url.Content("~/Assets/dist/img/default/no_photo.png")');
+                $('#PasPhoto').val("");
+                $('#btnClearEmployeePhoto').hide();
+                $('#fileEmployeePhoto').val("");
+                $('#btnBrowseEmployeeTitle').text("Browse");
+
+            });
+
+            // Create the preview image
+            $("#fileEmployeePhoto").change(function () {
+                var img = $('#imgEmployee');
+                var file = this.files[0];
+                var reader = new FileReader();
+                // Set preview image into the popover data-content
+                reader.onload = function (e) {
+                    $('#btnBrowseEmployeeTitle').text("Change");
+                    $("#btnClearEmployeePhoto").show();
+                    $("#PasPhoto").val(file.name);
+                    img.attr('src', e.target.result);
+                }
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+}

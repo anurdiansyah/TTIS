@@ -1,0 +1,244 @@
+﻿@using Nancy.Json
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@model AspNetUsers
+@{
+    ViewBag.Title = "User";
+
+    List<SelectListItem> lstRoleAccesss = new List<SelectListItem>();
+    lstRoleAccesss.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+    foreach (MasRoleAccess oRoleAccess in new JavaScriptSerializer().Deserialize<List<MasRoleAccess>>(HttpContextAccessor.HttpContext.Session.GetString("sessUserRoleList")))
+    {
+        lstRoleAccesss.Add(new SelectListItem { Value = oRoleAccess.RoleAccessId.ToString(), Text = oRoleAccess.RoleName });
+    }
+}
+
+@using (Html.BeginForm("PostAsync", "AspNetUsers", FormMethod.Post, new { id = "frmInput", enctype = "multipart/form-data", autocomplete = "off" }))
+{
+    <div class="modal-header">
+        <h3>
+            <i class="fa fa-user"></i>&nbsp;&nbsp;<span id="spnActionName"></span> @ViewBag.Title
+        </h3>
+    </div>
+
+    <div class="modal-body" style="max-height: calc(100vh - 240px) !important; overflow-y: auto !important;">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="row">
+
+                    <div class="form-group col-md-4" style="text-align:center !important; vertical-align:middle !important">
+                        <label style="width:100%">&nbsp; </label>
+                        <img class="profile-user-img img-responsive" id="imgEmployee" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_square.png")" alt="Employee Photo">
+                    </div>
+
+                    <div class="form-group col-md-6 no-padding" style="padding-right:0!important">
+                        <label>Employee Tag Number</label>
+                        @Html.TextBox("TagNumber", null, new { @placeholder = "Employee Tag Number", @class = "form-control", @required = "true", @maxlength = "10" })
+                    </div>
+
+                    <div class="form-group col-md-2" style="padding-left:0!important;">
+                        <label style="width:100%">&nbsp; </label>
+                        <button id="btnValidate" type="button" class="btn btn-primary btn-flat" onclick="ValidateEmployee()" style="text-align:left!important">
+                            <i class="fa fa-refresh"></i> &nbsp; Validate
+                        </button>
+                    </div>
+
+                    <div class="form-group col-md-8 no-padding">
+                        <label>Informasi Karyawan</label>
+                        @Html.TextArea("EmployeeDetail", new { @class = "form-control", @style = "font-weight:bold", @readonly = "true", @rows = "10" })
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4" id="dvUserDetail">
+                @Html.HiddenFor(model => model.Id)
+                @Html.HiddenFor(model => model.NormalizedUserName, new { @class = "form-control", @readonly = "true", @required = true })
+                @Html.HiddenFor(model => model.NormalizedEmail, new { @class = "form-control", @readonly = "true", @required = true })
+
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h3>Detail User</h3>
+                    </div>
+                    <div class="box-body">
+                        <div class="form-group col-md-12">
+                            <div class="form-group col-md-12">
+                                <label>User Name</label>
+                                @Html.TextBoxFor(model => model.UserName, new { @class = "form-control", @readonly = "true", @required = true })
+                            </div>
+                            <div class="form-group col-md-12">
+                                <label>Email</label>
+                                @Html.TextBoxFor(model => model.Email, new { @class = "form-control", @readonly = "true", @required = true })
+                            </div>
+                            <div class="form-group col-md-9">
+                                <label>Phone Number</label>
+                                @Html.TextBoxFor(model => model.PhoneNumber, new { @class = "form-control", @readonly = "true", @required = true })
+                            </div>
+                            <div class="form-group col-md-3">
+                                <label>Confirmed</label>
+                                @Html.TextBoxFor(model => model.PhoneNumberConfirmed, new { @class = "form-control", @readonly = "true" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4" id="dvRoleAccess">
+                <div class="box box-primary">
+                    <div class="box-header">
+                        <h3>Role Access</h3>
+                        <div class="row" id="dvNewRole">
+                            <div class="col-md-9" style="padding-right:0!important">
+                                @Html.DropDownList("ddlRoleAccess", lstRoleAccesss, new { @class = "form-control" })
+                            </div>
+                            <div class="col-md-3" style="padding-left:0!important">
+                                <button id="btnAddRole" type="button" class="btn btn-primary btn-flat" onclick="fAddRole()" style="width:100% !important;">
+                                    <i class="fa fa-plus"></i> &nbsp; Add Role
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <div class="form-group col-md-12 no-padding">
+                            <table id="tblRoleAccess"
+                                   style="width:100%"
+                                   class="table table-bordered table-striped dataTable no-footer"
+                                   role="grid"></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <div class="form-group col-md-6 pull-right no-padding">
+            <div class="form-group col-md-6">
+                <button id="btnSubmit" type="submit" name="Save" class="form-control btn btn-success btn-flat">
+                    <i class="fa fa-save"></i> &nbsp; Simpan
+                </button>
+            </div>
+            <div class="form-group col-md-6">
+                <button type="button" class="form-control btn btn-default btn-flat" onclick="fClose()">
+                    <i class="fa fa-close"></i> &nbsp; Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $('#mdlInput').on('shown.bs.modal', function () {
+            try {
+                RefreshDataTable('tblRoleAccess');
+
+                $('#JoinDate').datepicker({
+                    autoclose: true,
+                    format: 'dd MM yyyy'
+                });
+                $('#BirthDate').datepicker({
+                    autoclose: true,
+                    format: 'dd MM yyyy'
+                });
+                $('#LicenseExpiryDate').datepicker({
+                    autoclose: true,
+                    format: 'dd MM yyyy'
+                });
+            }
+            catch (err) {
+                swal({
+                    title: 'From Catch',
+                    text: err.message,
+                    type: 'warning'
+                }).then(function () {
+                    fClose()
+                })
+            }
+        });
+
+        function fLoadRoleAccess() {
+            $('#tblRoleAccess').DataTable({
+                "ajax": {
+                    "url": "@Url.Action("UserRoleAccessList", "AspNetUsers")",
+                    "type": "POST",
+                    "data": function (d) {
+                        d.p_sKeyword = $("#txtKeyword").val();
+                    },
+                },
+                "columns": [
+                    {
+                        "title": "Id",
+                        "data": "roleAccessId",
+                        className: "hidden",
+                    },
+                    {
+                        "title": "Action",
+                        "width": "15%",
+                        className: "dt-col-center",
+                        render: function (d) {
+                            var sResults = '';
+                            if ($("#spnActionName").html() != 'Detail') {
+                                sResults = "<a onclick = 'fDeleteRole(this)' class='btn btn-danger btn-sm btn-flat fa fa-close'></a>";
+                            }
+                            return sResults;
+                        },
+                    },
+                    {
+                        "title": "Role Code",
+                        "data": "roleCode",
+                    },
+                    {
+                        "title": "Role Name",
+                        "data": "roleName",
+                    },
+                ],
+                "processing": true,
+                "serverSide": true,
+                "lengthMenu": [[10, 20, 50, 100], [10, 20, 50, 100]],
+                "filter": false,
+                "paging":false,
+                "info":false,
+                "sort": false,
+                "orderMulti": false
+            });
+        }
+
+        $('#frmInput').submit(function (e) {
+            e.preventDefault();
+
+            var serializedForm = $(this).serialize();
+             $.ajax({
+                url: '@Url.Action("PostAsync", "AspNetUsers")',
+                type: "POST",
+                data: serializedForm,
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: "Success...",
+                            text: data["message"],
+                            type: 'success'
+                        }).then(function () {
+                            CloseModalInput('tblAspNetUsersList');
+                        })
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblAspNetUsersList');
+                    })
+                }
+            });
+            return false;
+        });
+
+    </script>
+}

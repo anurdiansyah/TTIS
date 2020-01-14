@@ -1,0 +1,200 @@
+﻿<script id="InputScript">
+
+    function fAdd() {
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).val('');
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+
+        $("#btnSubmit").show();
+        $("#btnReject").show();
+        OpenModalInput('Add New')
+    }
+
+    function fApprove(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", false);
+            $(this).attr("disabled", false);
+        });
+        $("#btnSubmit").show();
+        $("#btnReject").show();
+
+        Get(iId, "Edit");
+    }
+
+    function fShowDetail(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", true);
+            $(this).attr("disabled", true);
+        });
+
+        $("#btnSubmit").hide();
+        $("#btnReject").hide();
+
+        Get(iId, "Detail");
+    }
+
+    function fDelete(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        swal({
+            title: "Anda yakin?",
+            text: "Anda tidak akan dapat membatalkan tindakan ini!",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: 'Lanjutkan',
+            cancelButtonText: "Batalkan",
+        }).then(result =>
+        {
+            if (result.value) {
+                Delete(iId);
+            }
+        });
+    }
+
+    function Get(p_iId, p_sActionName) {
+        var hiddenField = ["RoleAccessId", "Version", "IsNeedApproval", "CreateDate", "CreateByUserId", "UpdateDate", "UpdateByUserId", "UpdateDate",
+                           "Id","ConcurrencyStamp", "PasswordHash", "PhoneNumberConfirmed", "SecurityStamp", "AspNetUserClaims", "AspNetUserLogins", "AspNetUserRoles", "AspNetUserTokens",
+                           ];
+
+        try {
+            $.ajax({
+                url: '@Url.Action("GetApprovalAsync", "Approval")',
+                type: "POST",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        obj = jQuery.parseJSON(data["jsonData"]);
+                        var prevDetail = jQuery.parseJSON(obj.PreviousDetail);
+                        var Detail = jQuery.parseJSON(obj.Detail);
+
+                        $("#frmInput").find("select, input, textarea").each(function () {
+                            if (this.name.toLowerCase().indexOf('date') > -1) {
+                                var date = new Date(obj[this.name]);
+                                $("#" + this.name).val(moment(date).format("DD MMMM YYYY"))
+                            } else {
+                                $("#" + this.name).val(obj[this.name])
+                            }
+                        });
+
+                        var tblDetailBefore = $('#tblDetailBefore tbody')
+                        tblDetailBefore.empty();
+                        var oKeys = Object.keys(prevDetail);
+                        $.each(oKeys, function (key, value) {
+                            if (jQuery.inArray(value, hiddenField) < 0) {
+                                if (Detail[value] !== prevDetail[value]) {
+                                    var sValue = prevDetail[value] == null ? "" : prevDetail[value];
+                                    tblDetailBefore.append('<tr id=prevDetail_' + key + '>' +
+                                                    '   <td><b>' + value + '</b></td>' +
+                                                    '   <td>' + sValue + '</td>' +
+                                                    '</tr>');
+                                }
+                            }
+                        });
+
+                        var tblDetail = $('#tblDetail tbody')
+                        tblDetail.empty();
+                        var oDetailKeys = Object.keys(Detail);
+                        $.each(oDetailKeys, function (key, value) {
+                            if (jQuery.inArray(value, hiddenField) < 0) {
+                                if (Detail[value] !== prevDetail[value]) {
+                                    var sValue = Detail[value] == null ? "" : Detail[value];
+                                    tblDetail.append('<tr id=Detail_' + key + '>' +
+                                                    '   <td><b>' + value + '</b></td>' +
+                                                    '   <td>' + sValue + '</td>' +
+                                                    '</tr>');
+
+                                    $("#Detail_" + key).css("background-color", "yellow");
+                                }
+                            }
+                        });
+
+                        OpenModalInput(p_sActionName)
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblApprovalList');
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblApprovalList');
+            })
+        }
+    };
+
+    function Delete(p_iId){
+        try {
+            $.ajax({
+                url: '@Url.Action("DeleteAsync", "Approval")',
+                type: "DELETE",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: 'Success!',
+                            text: data["message"],
+                            type: 'success'
+                        }).then
+                            (function () {
+                                RefreshDataTable('tblApprovalList');
+                            });
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblApprovalList');
+            })
+        }
+    };
+
+    function fClose() {
+        CloseModalInput();
+    }
+
+</script>

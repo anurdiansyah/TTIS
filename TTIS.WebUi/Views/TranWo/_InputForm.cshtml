@@ -1,0 +1,142 @@
+﻿@using Nancy.Json
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@model TranWo
+
+@{
+}
+<style type="text/css">
+    .image-preview-input {
+        position: relative;
+        overflow: hidden;
+        margin: 0px;
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+    }
+
+        .image-preview-input input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+
+    .image-preview-input-title {
+        margin-left: 2px;
+    }
+</style>
+
+@using (Html.BeginForm("PostAsync", "TranWo", FormMethod.Post, new { id = "frmInput", enctype = "multipart/form-data", autocomplete = "off" }))
+{
+    <div class="modal-header">
+        <h3>
+            <i class="fa fa-user"></i>&nbsp;&nbsp;<span id="spnActionName"></span> @ViewBag.Title
+        </h3>
+    </div>
+
+    <div class="modal-body" style="max-height: calc(100vh - 240px) !important; overflow-y: auto !important;">
+        @Html.HiddenFor(model => model.WorkOrderId)
+
+        <div class="row">
+            
+        </div>
+
+    </div>
+
+    <div class="modal-footer">
+        <div class="form-group col-md-6 pull-right no-padding">
+            <div class="form-group col-md-6">
+                <button id="btnSubmit" type="submit" name="Save" class="form-control btn btn-success btn-flat">
+                    <i class="fa fa-save"></i> &nbsp; Simpan
+                </button>
+            </div>
+            <div class="form-group col-md-6">
+                <button type="button" class="form-control btn btn-default btn-flat" onclick="fClose()">
+                    <i class="fa fa-close"></i> &nbsp; Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+
+    $('#mdlInput').on('shown.bs.modal', function () {
+        try {
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                //fClose();
+            })
+        }
+    });
+
+    $('#frmInput').submit(function (e) {
+        e.preventDefault();
+        var form = $(this)[0];
+        var data = new FormData(form);
+
+        swal({
+          title: 'Simpan..?',
+          text: "Lanjutkan proses penyimpanan?",
+          type: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Ya',
+          cancelButtonText: 'Batal'
+        }).then((result) => {
+              if (result.value) {
+                $.ajax({
+                    url: '@Url.Action("PostAsync", "TranWo")',
+                    data: data,
+                    type: "POST",
+                    enctype: 'multipart/form-data',
+                    processData: false,
+                    contentType: false,
+                    cache: false,
+                    timeout: 600000,
+                    success: function (data) {
+                        if (data["isSuccess"]) {
+                            swal({
+                                title: "Success...",
+                                text: data["message"],
+                                type: 'success'
+                            }).then(function () {
+                                CloseModalInput('tblTranWoList');
+                            })
+                        } else {
+                            swal({
+                                title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                                text: "Please safe the Reference Number and call your System Administrator.",
+                                type: 'warning'
+                            })
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        swal({
+                            title: window.location.href,
+                            text: "( Error " + xhr.status + " ) - " + error,
+                            type: 'warning'
+                        }).then(function () {
+                            CloseModalInput('tblTranWoList');
+                        })
+                    }
+                });
+            return false;
+          }
+        })
+    });
+
+</script>

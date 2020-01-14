@@ -1,0 +1,145 @@
+﻿@model MasDevice
+
+@{
+    ViewBag.Title = "Device";
+}
+<style type="text/css">
+    .image-preview-input {
+        position: relative;
+        overflow: hidden;
+        margin: 0px;
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+    }
+
+        .image-preview-input input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+
+    .image-preview-input-title {
+        margin-left: 2px;
+    }
+</style>
+
+@using (Html.BeginForm("PutAsync", "Devices", FormMethod.Post, new { id = "frmInput", enctype = "multipart/form-data", autocomplete = "off" }))
+{
+    <div class="modal-header">
+        <h3>
+            <i class="fa fa-user"></i>&nbsp;&nbsp;<span id="spnActionName"></span> @ViewBag.Title
+        </h3>
+    </div>
+
+    <div class="modal-body" style="max-height: calc(100vh - 240px) !important; overflow-y: auto !important;">
+        @Html.HiddenFor(model => model.DeviceId)
+
+        <div class="form-group col-md-4">
+            <div class="form-group col-md-12">
+                <label>
+                    Nama
+                </label>
+                @Html.TextBoxFor(model => model.DeviceName, new { @placeholder = "Nama", @class = "form-control", @required = "true", })
+            </div>
+
+            <div class="form-group col-md-12">
+                <label>
+                    Tipe Gadget
+                </label>
+                @Html.TextBoxFor(model => model.GadgetType, new { @placeholder = "Tipe Gadget", @class = "form-control", @required = "true", })
+            </div>
+
+            <div class="form-group col-md-12">
+                <label>
+                    SN
+                </label>
+                @Html.TextBoxFor(model => model.DeviceSn, new { @placeholder = "SN", @class = "form-control", @required = "true", })
+            </div>
+
+            <div class="form-group col-md-12">
+                <label>
+                    Merk
+                </label>
+                @Html.TextBoxFor(model => model.Manufacturer, new { @placeholder = "Merk", @class = "form-control", @required = "true", })
+            </div>
+
+            <div class="form-group col-md-12">
+                <label>
+                    Seri
+                </label>
+                @Html.TextBoxFor(model => model.Series, new { @placeholder = "Seri", @class = "form-control", @required = "true", })
+            </div>
+        </div>
+
+        <div class="form-group col-md-8">
+            <div class="box box-success">
+                <div class="box-header with-border">
+                    <h3 class="box-title">Device List</h3>
+                </div>
+                <div class="box-body">
+                    <div class="row">
+                        <div class="form-group col-md-12">
+                            <label>Keyword</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                                <input type="text" id="txtLitemKeyword" name="p_sLitemKeyword" class="form-control" placeholder="Keyword..." onkeyup="RefreshDataTable('tblDevicesLitemList')">
+                            </div>
+                        </div>
+
+                        <div class="form-group col-md-6 pull-right">
+                            <a style="width:100%" class="btn btn-success btn-flat" onclick="AddNewLitem()"><i class="fa fa-plus"></i>&nbsp;&nbsp;Add Item</a>
+                        </div>
+                        <div class="form-group col-md-6 pull-right">
+                            <a style="width:100%" class="btn btn-primary btn-flat" onclick="ImportLitem()"><i class="fa fa-upload"></i>&nbsp;&nbsp;Import Item</a>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table id="tblDevicesLitemList"
+                                   style="width:100%"
+                                   class="table table-bordered table-striped dataTable no-footer"
+                                   role="grid"></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal-footer">
+        <div class="form-group col-md-12" style="text-align:right !important;">
+            <button id="btnSubmit" type="submit" class="btn btn-success btn-flat" style="width:20% !important; margin-right:4px;">
+                <i class="fa fa-save"></i> &nbsp; Simpan
+            </button>
+
+            <button type="button" class="btn btn-default btn-flat" style="width:20% !important; margin-left:4px;" onclick="fClose()">
+                <i class="fa fa-close"></i> &nbsp; Tutup
+            </button>
+        </div>
+    </div>
+
+    <script>
+        $('#mdlInput').on('shown.bs.modal', function () {
+            try {
+            }
+            catch (err) {
+                swal({
+                    title: 'From Catch',
+                    text: err.message,
+                    type: 'warning'
+                }).then(function () {
+                    fClose()
+                })
+            }
+        });
+    </script>
+}

@@ -1,0 +1,297 @@
+﻿@using Nancy.Json
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@model VehicleDetail
+
+@{
+    List<SelectListItem> lstVehicleStatuses = new List<SelectListItem>();
+    lstVehicleStatuses.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+    foreach (MasVehicleStatus oVehicleStatus in new JavaScriptSerializer().Deserialize<List<MasVehicleStatus>>(HttpContextAccessor.HttpContext.Session.GetString("VehicleStatuses")))
+    {
+        lstVehicleStatuses.Add(new SelectListItem { Value = oVehicleStatus.VehicleStatusId.ToString(), Text = oVehicleStatus.Name });
+    }
+
+    List<SelectListItem> lstDocumentPositions = new List<SelectListItem>();
+    lstDocumentPositions.Add(new SelectListItem { Value = "", Text = "- Select One -" });
+    foreach (SysDocumentPosition oDocumentPosition in new JavaScriptSerializer().Deserialize<List<SysDocumentPosition>>(HttpContextAccessor.HttpContext.Session.GetString("DocumentPositions")))
+    {
+        lstDocumentPositions.Add(new SelectListItem { Value = oDocumentPosition.DocumentPositionId.ToString(), Text = oDocumentPosition.Name });
+    }
+
+    List<SelectListItem> lstVehicleUsageTypes = new List<SelectListItem>();
+    lstVehicleUsageTypes.Add(new SelectListItem { Value = "-99", Text = "- Tidak Digunakan -" });
+    foreach (SysVehicleUsageType oVehicleUsageType in new JavaScriptSerializer().Deserialize<List<SysVehicleUsageType>>(HttpContextAccessor.HttpContext.Session.GetString("VehicleUsageTypes")))
+    {
+        lstVehicleUsageTypes.Add(new SelectListItem { Value = oVehicleUsageType.VehicleUsageTypeId.ToString(), Text = oVehicleUsageType.Name });
+    }
+
+    List<SelectListItem> lstEmployees = new List<SelectListItem>();
+    lstEmployees.Add(new SelectListItem { Value = "00000000-0000-0000-0000-000000000000", Text = "- Tidak ada Pengguna - " });
+    foreach (MasEmployee oEmployee in new JavaScriptSerializer().Deserialize<List<MasEmployee>>(HttpContextAccessor.HttpContext.Session.GetString("Employees")))
+    {
+        lstEmployees.Add(new SelectListItem { Value = oEmployee.EmployeeId.ToString(), Text = oEmployee.FirstName + " " + oEmployee.MiddleName + " " + oEmployee.LastName });
+    }
+}
+<style type="text/css">
+    .image-preview-input {
+        position: relative;
+        overflow: hidden;
+        margin: 0px;
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+    }
+
+        .image-preview-input input[type=file] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            filter: alpha(opacity=0);
+        }
+
+    .image-preview-input-title {
+        margin-left: 2px;
+    }
+</style>
+
+@using (Html.BeginForm("PostAsync", "Vehicle", FormMethod.Post, new { id = "frmInput", enctype = "multipart/form-data", autocomplete = "off" }))
+{
+    <div class="modal-header">
+        <h3>
+            <i class="fa fa-user"></i>&nbsp;&nbsp;<span id="spnActionName"></span> @ViewBag.Title
+        </h3>
+        <br />
+        <div class="row" id="vehicleUserDetail">
+            <div class="box box-primary">
+                <div class="box-body">
+                    <div class="col-md-6" style="padding:0px!important">
+                        <div class="col-md-6">
+                            <label>Tipe Penggunaan</label>
+                            @Html.DropDownListFor(model => model.VehicleUsageTypeId, lstVehicleUsageTypes, new { @placeholder = "Tipe Penggunaan", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                        <div class="col-md-6">
+                            <label>Pengguna Kendaraan</label>
+                            @Html.DropDownListFor(model => model.EmployeeId, lstEmployees, new { @placeholder = "Pengguna Kendaraan", @class = "form-control", @readonly = "true", @required = true })
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-body" style="max-height: calc(100vh - 380px) !important; overflow-y: auto !important; padding-top:0!important">
+        @Html.HiddenFor(model => model.VehicleId)
+
+        <div class="row" id="vehicleDetail">
+            <div class="nav-tabs-custom">
+                <ul class="nav nav-tabs">
+                    <li class="active"><a href="#detail" data-toggle="tab">Vehicle Detail</a></li>
+                    <li class=""><a href="#history" data-toggle="tab">Vehicle User history</a></li>
+                </ul>
+
+                <div class="tab-content">
+                    <div class="tab-pane active" id="detail">
+                        <div class="row">
+                            <div class="col-md-12 form-group">
+                                <div class="col-md-3">
+                                    <div class="box box-primary">
+                                        <div class="box-header">
+                                            <h3>Vehicle Info</h3>
+                                        </div>
+                                        <div class="box-body">
+                                            <div class="form-group col-md-12">
+                                                <img class="profile-user-img img-responsive" id="imgVehicle" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Vehicle ">
+                                            </div>
+
+                                            <div class="col-md-12 form-group">
+                                                <label>Status Kendaraan</label>
+                                                @Html.DropDownListFor(model => model.VehicleStatusId, lstVehicleStatuses, new { @placeholder = "Status Kendaraan", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+
+                                            <div class="col-md-6 form-group">
+                                                <label>Nomor Registrasi</label>
+                                                @Html.TextBoxFor(model => model.NomorRegistrasi, new { @placeholder = "Nomor Registrasi", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+
+                                            <div class="col-md-6 form-group">
+                                                <label>Plate</label>
+                                                @Html.TextBoxFor(model => model.Plate, new { @placeholder = "Plate", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="box box-primary">
+                                        <div class="box-header">
+                                            <h3>BPKB</h3>
+                                        </div>
+                                        <div class="box-body">
+                                            <div class="form-group col-md-12">
+                                                <img class="profile-user-img img-responsive" id="imgBpkb" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Bpkb ">
+                                            </div>
+
+                                            <div class="col-md-6 form-group">
+                                                <label>Posisi Dokumen</label>
+                                                @Html.DropDownListFor(model => model.BpkbpositionId, lstDocumentPositions, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+                                            <div class="col-md-6 form-group">
+                                                <label style="width:100%">&nbsp; </label>
+                                                @Html.TextBoxFor(model => model.BpkbpositionReffId, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="box box-primary">
+                                        <div class="box-header">
+                                            <h3>STNK</h3>
+                                        </div>
+                                        <div class="box-body">
+                                            <div class="form-group col-md-12">
+                                                <img class="profile-user-img img-responsive" id="imgStnk" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Stnk ">
+                                            </div>
+                                            <div class="col-md-6 form-group">
+                                                <label>Posisi Dokumen</label>
+                                                @Html.DropDownListFor(model => model.StnkpositionId, lstDocumentPositions, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+                                            <div class="col-md-6 form-group">
+                                                <label style="width:100%">&nbsp; </label>
+                                                @Html.TextBoxFor(model => model.StnkpositionReffId, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+                                            <div class="col-md-12 form-group">
+                                                <label>Berlaku Hingga</label>
+                                                @Html.TextBoxFor(model => model.StnkberlakuHingga, new { @placeholder = "Berlaku Hingga", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="box box-primary">
+                                        <div class="box-header">
+                                            <h3>KIR</h3>
+                                        </div>
+                                        <div class="box-body">
+                                            <div class="form-group col-md-12">
+                                                <img class="profile-user-img img-responsive" id="imgKir" style="width:100% !important; margin-bottom:10px !important" src="@Url.Content("~/Assets/dist/img/default/no_image_rectangle.png")" alt="Kir ">
+                                            </div>
+                                            <div class="col-md-6 form-group">
+                                                <label>Posisi Dokumen</label>
+                                                @Html.DropDownListFor(model => model.KirpositionId, lstDocumentPositions, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+                                            <div class="col-md-6 form-group">
+                                                <label style="width:100%">&nbsp; </label>
+                                                @Html.TextBoxFor(model => model.KirpositionReffId, new { @placeholder = "Posisi Dokumen", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+                                            <div class="col-md-12 form-group">
+                                                <label>Berlaku Hingga</label>
+                                                @Html.TextBoxFor(model => model.KirberlakuHingga, new { @placeholder = "Berlaku Hingga", @class = "form-control", @readonly = "true", @required = true })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="history">
+                        <div class="row">
+                            <div class="col-md-12 form-group">
+                                <table id="tblVehicleUserHistoryList"
+                                       style="width:100%"
+                                       class="table table-bordered table-striped dataTable no-footer"
+                                       role="grid"></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <div class="form-group col-md-12" style="text-align:right !important;">
+            <button id="btnSubmit" type="submit" class="btn btn-success btn-flat" style="width:20% !important; margin-right:4px;">
+                <i class="fa fa-save"></i> &nbsp; Simpan
+            </button>
+
+            <button type="button" class="btn btn-default btn-flat" style="width:20% !important; margin-left:4px;" onclick="fClose()">
+                <i class="fa fa-close"></i> &nbsp; Tutup
+            </button>
+        </div>
+    </div>
+}
+
+<script>
+
+    $('#mdlInput').on('shown.bs.modal', function () {
+        try {
+            $('#DateFrom').datepicker({ autoclose: true, format: 'dd MM yyyy' });
+
+            RefreshDataTable("tblVehicleUserHistoryList");
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                //fClose();
+            })
+        }
+    });
+
+    $('#frmInput').submit(function (e) {
+        e.preventDefault();
+
+        var form = $(this)[0];
+        var data = new FormData(form);
+
+        $.ajax({
+            url: '@Url.Action("PostAsync", "VehicleUser")',
+            data: data,
+            type: "POST",
+            enctype: 'multipart/form-data',
+            processData: false,
+            contentType: false,
+            cache: false,
+            timeout: 600000,
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: "Success...",
+                            text: data["message"],
+                            type: 'success'
+                        }).then(function () {
+                            CloseModalInput('tblVehicleUserList');
+                        })
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblVehicleUserList');
+                    })
+                }
+        });
+        return false;
+    });
+
+</script>

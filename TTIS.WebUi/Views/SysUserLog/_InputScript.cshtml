@@ -1,0 +1,188 @@
+﻿<script id="InputScript">
+
+    function fEdit(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#Name").attr("disabled", true);
+        $("#Name").attr("readonly", true);
+        $("#Description").attr("disabled", true);
+        $("#Description").attr("readonly", true);
+
+        $("#Value").attr("disabled", false);
+        $("#Value").attr("readonly", false);
+
+        $("#btnSubmit").show();
+
+        Get(iId, "Edit");
+    };
+
+    function fShowDetail(senderButton) {
+        var row = $(senderButton).closest("TR");
+        var iId = $("TD", row).eq(0).html();
+
+        $("#frmInput").find("select, input, textarea").each(function () {
+            $(this).attr("readonly", true);
+            $(this).attr("disabled", true);
+        });
+
+        $("#btnSubmit").hide();
+        var column = $("#tblSysUserLogGroup").DataTable().column(1);
+        column.visible(false);
+
+        Get(iId, "Detail");
+    };
+
+    function fPurge() {
+        swal({
+            title: "Anda yakin?",
+            text: "Anda tidak akan dapat membatalkan tindakan ini!",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: 'Lanjutkan',
+            cancelButtonText: "Batalkan",
+        }).then(result =>
+        {
+            if (result.value) {
+                Purge();
+            }
+        });
+    };
+
+    function Purge(p_iId){
+        try {
+            $.ajax({
+                url: '@Url.Action("PurgeAsync", "SysUserLog")',
+                type: "DELETE",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        swal({
+                            title: 'Success!',
+                            text: data["message"],
+                            type: 'success'
+                        }).then
+                            (function () {
+                                RefreshDataTable('tblSysUserLogList');
+                            });
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblSysUserLogList');
+            })
+        }
+    };
+
+    function Get(p_iId, p_sActionName) {
+        var hiddenField = ["RoleAccessId", "Version", "IsNeedApproval", "CreateDate", "CreateByUserId", "UpdateDate", "UpdateByUserId", "UpdateDate",
+                           "Id","ConcurrencyStamp", "PasswordHash", "PhoneNumberConfirmed", "SecurityStamp", "AspNetUserClaims", "AspNetUserLogins", "AspNetUserRoles", "AspNetUserTokens",
+        ];
+
+        try {
+            $.ajax({
+                url: '@Url.Action("GetSysUserLogAsync", "SysUserLog")',
+                type: "POST",
+                data: { p_iId: p_iId },
+                success: function (data) {
+                    if (data["isSuccess"]) {
+                        obj = jQuery.parseJSON(data["jsonData"]);
+                        var prevDetail = jQuery.parseJSON(obj.PreviousDetail);
+                        var Detail = jQuery.parseJSON(obj.Detail);
+
+                        $("#frmInput").find("select, input, textarea").each(function () {
+                            if (this.name.toLowerCase().indexOf('date') > -1) {
+                                var date = new Date(obj[this.name]);
+                                $("#" + this.name).val(moment(date).format("DD MMMM YYYY"))
+                            } else {
+                                $("#" + this.name).val(obj[this.name])
+                            }
+                        });
+
+                        var tblDetailBefore = $('#tblDetailBefore tbody')
+                        tblDetailBefore.empty();
+                        var oKeys = Object.keys(prevDetail);
+                        $.each(oKeys, function (key, value) {
+                            if (jQuery.inArray(value, hiddenField) < 0) {
+                                if (Detail[value] !== prevDetail[value]) {
+                                    var sValue = prevDetail[value] == null ? "" : prevDetail[value];
+                                    tblDetailBefore.append('<tr id=prevDetail_' + key + '>' +
+                                                    '   <td><b>' + value + '</b></td>' +
+                                                    '   <td>' + sValue + '</td>' +
+                                                    '</tr>');
+                                }
+                            }
+                        });
+
+                        var tblDetail = $('#tblDetail tbody')
+                        tblDetail.empty();
+                        var oDetailKeys = Object.keys(Detail);
+                        $.each(oDetailKeys, function (key, value) {
+                            if (jQuery.inArray(value, hiddenField) < 0) {
+                                if (Detail[value] !== prevDetail[value]) {
+                                    var sValue = Detail[value] == null ? "" : Detail[value];
+                                    tblDetail.append('<tr id=Detail_' + key + '>' +
+                                                    '   <td><b>' + value + '</b></td>' +
+                                                    '   <td>' + sValue + '</td>' +
+                                                    '</tr>');
+
+                                    $("#Detail_" + key).css("background-color", "yellow");
+                                }
+                            }
+                        });
+
+                        OpenModalInput(p_sActionName)
+                    } else {
+                        swal({
+                            title: "Oops, Something wrong with your Request\n\n Reference Number : " + data["referenceNumber"] + "\n\n",
+                            text: "Please safe the Reference Number and call your System Administrator.",
+                            type: 'warning'
+                        })
+                    }
+                },
+                error: function (xhr, status, error) {
+                    swal({
+                        title: window.location.href,
+                        text: "( Error " + xhr.status + " ) - " + error,
+                        type: 'warning'
+                    }).then(function () {
+                        CloseModalInput('tblSysUserLogList');
+                    })
+                }
+            });
+        }
+        catch (err) {
+            swal({
+                title: 'From Catch',
+                text: err.message,
+                type: 'warning'
+            }).then(function () {
+                CloseModalInput('tblSysUserLogList');
+            })
+        }
+    };
+
+    function fClose() {
+        CloseModalInput();
+    };
+</script>
